@@ -1,11 +1,7 @@
 # here we implement policy iteration based on the simple gridworld run by explore.py
 # using OpenAI gyms for this would pose some challenges at first, but the problem is simple enough to just be put together using numpy arrays
 import os
-import time
 import numpy as np
-
-os.system('cls' if os.name == 'nt' else 'clear')
-#test_grid_size = int(input('Enter grid size to use: '))
 
 # even though not being used at the moment, for generality we're defining the policy as being a function of an action and a current state
 def test_policy(action, state):
@@ -24,14 +20,12 @@ class MarkovGridWorld():
         self.grid_size = grid_size # keep this unchanged, things are mostly hardcoded at the moment
         self.action_space = (0,1,2,3)
         self.discount_factor = discount_factor
-        #self.rewards = -1 * np.ones([grid_size, grid_size])
         self.terminal_state = np.array([grid_size-1, grid_size-1]) # terminal state in the bottom right corner
-        #self.rewards[tuple(self.terminal_state)] = 0
         self.action_to_direction = {
-            0: np.array([1, 0]),
-            1: np.array([0, 1]),
-            2: np.array([-1, 0]),
-            3: np.array([0, -1]),
+            0: np.array([1, 0]), # down
+            1: np.array([0, 1]), # right
+            2: np.array([-1, 0]), # up
+            3: np.array([0, -1]), # left
         }
         self.rng = np.random.default_rng() # construct a default numpy random number Generator class instance, to use in stochastics
         self.direction_probability = direction_probability
@@ -43,6 +37,10 @@ class MarkovGridWorld():
                 self.state_space[state_counter, :] = [row, col]
                 state_counter += 1
 
+    def direction_to_action(self, direction):
+        for action in range(4):
+            if np.array_equal(direction, self.action_to_direction[action]):
+                return action
 
     def reward(self, state):
         if np.array_equal(state, self.terminal_state):
@@ -67,7 +65,6 @@ class MarkovGridWorld():
         # and 10% probability for each of the other directions 
         stochastics = np.ones(4) * prob_other_directions
         stochastics[action] = self.direction_probability
-        state_difference = successor_state - current_state # sort of a vector from current state to successor_state
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
         
@@ -104,7 +101,6 @@ class MarkovGridWorld():
 
 # epsilon = the threshold delta must go below in order for us to stop
 def policy_evaluation(policy, MDP, epsilon=0, max_iterations=20):
-
     current_value = np.zeros([MDP.grid_size, MDP.grid_size])
     change = np.zeros([MDP.grid_size, MDP.grid_size]) # this will store the change in the value for each state, in the latest iteration
     delta = 0 # initialising the variable that will store the max change in the value_function across all states
@@ -115,32 +111,16 @@ def policy_evaluation(policy, MDP, epsilon=0, max_iterations=20):
         print('Current value function estimate:')
         print(current_value)
         print()
-
         # below 3 lines effectively equivalent to 'for state in state space of MDP'
-        for state_number in range(MDP.grid_size ** 2):
-            state = MDP.state_space[state_number,:]
-            
+        for state in MDP.state_space:
             old_state_value = current_value[tuple(state.astype(int))]
-            
             current_value_update = 0
             for action in MDP.action_space:
                 sub_sum = 0
-                for successor_state_number in range(MDP.grid_size ** 2):
-                    successor_state = MDP.state_space[successor_state_number]
-                    #print(f'    environment dynamics: {MDP.environment_dynamics(successor_state, state, action)}')
-                    #print(f'reward: {MDP.reward(successor_state)}')
-                    #print(f'successor_state: {successor_state}')
-                    #print(f'discount: {MDP.discount_factor}')
-                    #print(f'current value complete:')
-                    #print(current_value)
-                    #print(f'current value of successor......:')
-                    #print(successor_state.astype(int))
-                    #print(current_value[tuple(successor_state.astype(int))])
+                for successor_state in MDP.state_space:
                     sub_sum += MDP.environment_dynamics(successor_state, state, action) * (MDP.reward(successor_state) + MDP.discount_factor * current_value[tuple(successor_state.astype(int))])
                 current_value_update += policy(action,state) * sub_sum
-
             current_value[tuple(state.astype(int))] = current_value_update
-            
             change[tuple(state.astype(int))] = abs(current_value[tuple(state.astype(int))] - old_state_value)
         delta = change.max()
         print('Absolute changes to value function estimate:')
@@ -149,15 +129,66 @@ def policy_evaluation(policy, MDP, epsilon=0, max_iterations=20):
         print()
         print()
         print()
-        #time.sleep(0.3)
         iteration_no += 1
     return current_value
 
+# the below returns whether successor_state is in principle reachable from current_state, given the gridworld assumption
+# of a single rectangular move per time step in the grid environment domain
+def is_accessible(current_state, successor_state):
+    state_difference = successor_state - current_state
+    if np.array_equal(state_difference, [1,0]) or np.array_equal(state_difference, [-1,0]) or np.array_equal(state_difference, [0,1]) or np.array_equal(state_difference, [0,-1]):
+        return True
+    else:
+        return False
+
+# this function returns all states that are accessible from the current_state of the agent
+# since this is intended for generating greedy policies and other useful stuff, we'll rule out the agent's own state, even when that is accessible (e.g., by trying to move outside of the domain boundaries)
+def accessible_states(current_state, MDP):
+    output = np.array([])
+    for action in range(4):
+        direction = MDP.action_to_direction[action]
+        potential_accessible = np.clip(current_state + direction, 0, MDP.grid_size - 1) 
+        if not np.array_equal(potential_accessible, current_state):
+            if output.size == 0:
+                output = np.array([potential_accessible])
+            else:
+                output = np.row_stack((output, potential_accessible))
+    return output
+
+# at the moment, this actually returns a 2D array with integers codifying greedy actions in it, with respect to an input value function
+# from this, still need to construct a policy as a function policy(action, state), which returns a probability distribution over actions, given some current state
+# keep in mind that such a greedy policy will always be deterministic, so the probability distribution will be very boring, with 1 assigned to the greedy action and 0 elsewhere
+# however, this general structure is useful as it can be used directly in the generalised policy evaluation algorithm we've implemented, which assumes that form of a policy(action, satte)
+def greedy_policy(value_function, MDP):
+    policy_array = np.empty(shape=(MDP.grid_size, MDP.grid_size)) # this array stores actions (0,1,2,3) which codify the greedy policy
+    for state in MDP.state_space:
+        potential_next_states = accessible_states(state, MDP)
+        max_next_value = np.NINF # initialise max value attainable as minus infinity
+        for successor_state in potential_next_states:
+            potential_value = value_function[tuple(successor_state.astype(int))]
+            if potential_value > max_next_value:
+                greedy_direction = successor_state - state
+                max_next_value = potential_value
+        policy_array[tuple(state.astype(int))] = MDP.direction_to_action(greedy_direction)
+    return policy_array
+
+
 
 if __name__ == "__main__":
-    GridWorld = MarkovGridWorld(grid_size=3, direction_probability=0.5)
-    max_iterations = 20
-    epsilon = 0
+    os.system('cls' if os.name == 'nt' else 'clear')
+    default = input('Run policy evaluation with default parameters? (y/n) ')
+    if default.split()[0][0].upper() == 'Y':
+        grid_size = 3
+        direction_probability = 1
+        max_iterations = 20
+        epsilon = 0
+    else:
+        grid_size = int(input('Input grid size: '))
+        direction_probability = float(input('Input probability of action success: '))
+        max_iterations = int(input('Input max number of iterations: '))
+        epsilon = float(input('Input epsilon for convergence: '))
+
+    GridWorld = MarkovGridWorld(grid_size=grid_size, direction_probability=direction_probability)
     print('-----------------------------------------------------------------------------')
     print('Running policy evaluation.')
     print(f'Grid size: {GridWorld.grid_size}')
@@ -170,6 +201,7 @@ if __name__ == "__main__":
     input('Press Enter to continue...')
     print()
     value = policy_evaluation(policy = test_policy, MDP = GridWorld, epsilon = epsilon, max_iterations=max_iterations)
+    greedy_policy_array = greedy_policy(value, GridWorld)
     print('-----------------------------------------------------------------------------')
     print()
     print()
@@ -177,3 +209,6 @@ if __name__ == "__main__":
     print()
     print('Final value estimation:')
     print(value)
+    print()
+    print('Greedy policy ARRAY (NOT ACTUAL policy(action,state) JUST YET, NEED TO ADAPT THAT) with respect to final value function estimate:')
+    print(greedy_policy_array)
