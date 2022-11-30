@@ -18,31 +18,75 @@ def test_policy(action, state):
 # as a starter in implementing GridWorld stochastics, I will try to program simple stochastics into this gridworld's dynamics
 # E.G., given a certain action in a rectangular direction, we can assign the successor state some stochastics like
 # 85% probability of ending up where you expected, and 5% in each of the 3 other directions.
+# the argument direction_probability controls the probability with which we can expect the agent's selected action to result in the 'expected' successor state.
 class MarkovGridWorld():
-    def __init__(self, grid_size=3, discount_factor=1):
+    def __init__(self, grid_size=3, discount_factor=1, direction_probability = 1):
         self.grid_size = grid_size # keep this unchanged, things are mostly hardcoded at the moment
         self.action_space = (0,1,2,3)
         self.discount_factor = discount_factor
-        self.rewards = -1 * np.ones([grid_size, grid_size])
+        #self.rewards = -1 * np.ones([grid_size, grid_size])
         self.terminal_state = np.array([grid_size-1, grid_size-1]) # terminal state in the bottom right corner
-        self.rewards[tuple(self.terminal_state)] = 0
+        #self.rewards[tuple(self.terminal_state)] = 0
         self.action_to_direction = {
             0: np.array([1, 0]),
             1: np.array([0, 1]),
             2: np.array([-1, 0]),
             3: np.array([0, -1]),
         }
+        self.rng = np.random.default_rng() # construct a default numpy random number Generator class instance, to use in stochastics
+        self.direction_probability = direction_probability
+
+    def reward(self, state):
+        if state == self.terminal_state:
+            return 0
+        else:
+            return -1
+
+
+    # environment dynamics give the probability of a successor state, given a current state and an action
+    # crucial to define these in this generalised form, in order to implement general policy evaluation algorithm
+    def environment_dynamics(self, successor_state, current_state, action):
+        prob_other_directions = (1 - self.direction_probability) / 3
+        # the stochastics array describes the probability, given an action from (0,1,2,3), of the result corresponding to what we'd expect from each of those actions
+        # if action == 1, for example, if stochastics == array[0.1,0.7,0.1,0.1], then the resulting successor state will be what we would expect of action == 1 with 70% probability,
+        # and 10% probability for each of the other directions 
+        stochastics = np.ones(4) * prob_other_directions
+        stochastics[action] = self.direction_probability
+        state_difference = successor_state - current_state # sort of a vector from current state to successor_state
+        # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
+        # these probabilities have been defined by the stochastics vector above
+        match state_difference:
+            case self.action_to_direction[0]:
+                return stochastics[0]
+            case self.action_to_direction[1]:
+                return stochastics[1]
+            case self.action_to_direction[2]:
+                return stochastics[2]
+            case self.action_to_direction[3]:
+                return stochastics[3]
+            case _: # successor_state is outside of the domain reachable from the current_state (might be successor_state == current_state !)
+                return 0
+            
+
+
 
     # this is where the actual DYNAMICS live
     def state_transition(self, state, action):
-        direction = self.action_to_direction[action]
+        # the stochastics array describes the probability, given an action from (0,1,2,3), of the result corresponding to what we'd expect from each of those actions
+        # if action == 1, for example, if stochastics == array[0.1,0.7,0.1,0.1], then the resulting successor state will be what we would expect of action == 1 with 70% probability,
+        # and 10% probability for each of the other directions 
+        prob_other_directions = (1 - self.direction_probability) / 3
+        stochastics = np.ones(4) * prob_other_directions
+        stochastics[action] = self.direction_probability
+        effective_action = self.rng.choice(4, p=stochastics) # this is the effective action, after sampling from the given-action-biased distribution. Most times this will be equal to action
+        effective_direction = self.action_to_direction[effective_action]
         new_state = np.clip(
-            state + direction, 0, self.grid_size - 1
+            state + effective_direction, 0, self.grid_size - 1
         )
         # override the above if we were actually in the terminal state!
         if np.array_equal(state, self.terminal_state):
             new_state = self.terminal_state
-        return new_state, self.rewards[tuple(new_state)]
+        return new_state, self.reward(new_state)
 
 
 # epsilon = the threshold delta must go below in order for us to stop
