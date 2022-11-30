@@ -70,11 +70,15 @@ class MarkovGridWorld():
         state_difference = successor_state - current_state # sort of a vector from current state to successor_state
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
-        for action_int in range(4):
-            if np.array_equal(state_difference, self.action_to_direction[action_int]):
-                return stochastics[action_int]
-        else:
-            return 0
+        
+        
+        # HERE LIES AN ISSUE. NOT CONSIDERING CLIPPING THE ARRAY AT THE BOUNDARIES OF THE DOMAIN!!!
+        successor_probability = 0 # initialise probability of successor, might in the end be sum of various components of stochastics vector
+        for direction_number in range(4):
+            direction = self.action_to_direction[direction_number]
+            if np.array_equal(np.clip(current_state + direction, 0, self.grid_size - 1), successor_state):
+                successor_probability += stochastics[direction_number]
+        return successor_probability
 
 
 
@@ -100,7 +104,6 @@ class MarkovGridWorld():
 
 # epsilon = the threshold delta must go below in order for us to stop
 def policy_evaluation(policy, MDP, epsilon=0, max_iterations=20):
-    print(MDP.state_space)
 
     current_value = np.zeros([MDP.grid_size, MDP.grid_size])
     change = np.zeros([MDP.grid_size, MDP.grid_size]) # this will store the change in the value for each state, in the latest iteration
@@ -108,8 +111,6 @@ def policy_evaluation(policy, MDP, epsilon=0, max_iterations=20):
     iteration_no = 1
     while (delta == 0 or delta > epsilon) and iteration_no <= max_iterations:
         print(f'Iteration number: {iteration_no}')
-        print(f'Max iterations: {max_iterations}')
-        print(f'Epsilon: {epsilon}')
         print()
         print('Current value function estimate:')
         print(current_value)
@@ -119,21 +120,28 @@ def policy_evaluation(policy, MDP, epsilon=0, max_iterations=20):
         for state_number in range(MDP.grid_size ** 2):
             state = MDP.state_space[state_number,:]
             
-            old_state_value = current_value[state.astype(int)]
+            old_state_value = current_value[tuple(state.astype(int))]
             
             current_value_update = 0
             for action in MDP.action_space:
                 sub_sum = 0
                 for successor_state_number in range(MDP.grid_size ** 2):
                     successor_state = MDP.state_space[successor_state_number]
-                    sub_sum += MDP.environment_dynamics(successor_state, state, action) * (MDP.reward(successor_state) + MDP.discount_factor * current_value[successor_state.astype(int)])
-                    if np.array_equal(state, MDP.terminal_state):
-                        print(MDP.environment_dynamics(successor_state, state, action))
+                    #print(f'    environment dynamics: {MDP.environment_dynamics(successor_state, state, action)}')
+                    #print(f'reward: {MDP.reward(successor_state)}')
+                    #print(f'successor_state: {successor_state}')
+                    #print(f'discount: {MDP.discount_factor}')
+                    #print(f'current value complete:')
+                    #print(current_value)
+                    #print(f'current value of successor......:')
+                    #print(successor_state.astype(int))
+                    #print(current_value[tuple(successor_state.astype(int))])
+                    sub_sum += MDP.environment_dynamics(successor_state, state, action) * (MDP.reward(successor_state) + MDP.discount_factor * current_value[tuple(successor_state.astype(int))])
                 current_value_update += policy(action,state) * sub_sum
 
-            current_value[state.astype(int)] = current_value_update
+            current_value[tuple(state.astype(int))] = current_value_update
             
-            change[state.astype(int)] = abs(current_value[state.astype(int)] - old_state_value)
+            change[tuple(state.astype(int))] = abs(current_value[tuple(state.astype(int))] - old_state_value)
         delta = change.max()
         print('Absolute changes to value function estimate:')
         print(change)
@@ -141,17 +149,31 @@ def policy_evaluation(policy, MDP, epsilon=0, max_iterations=20):
         print()
         print()
         print()
-        time.sleep(0.3)
+        #time.sleep(0.3)
         iteration_no += 1
     return current_value
 
 
-
-MDP = MarkovGridWorld(grid_size = 3)
-print(MDP.environment_dynamics([2,1], [2,2], 3))
-print(MDP.reward([2,1]))
-
-#value = policy_evaluation(policy = test_policy, MDP = MarkovGridWorld(grid_size = test_grid_size))
-#print('Final value function estimate:')
-#print(value)
-#print()
+if __name__ == "__main__":
+    GridWorld = MarkovGridWorld(grid_size=3, direction_probability=0.5)
+    max_iterations = 20
+    epsilon = 0
+    print('-----------------------------------------------------------------------------')
+    print('Running policy evaluation.')
+    print(f'Grid size: {GridWorld.grid_size}')
+    print(f'Terminal state: {GridWorld.terminal_state}')
+    print(f'Discount factor: {GridWorld.discount_factor}')
+    print(f'Probability of action resulting in intended direction of motion: {GridWorld.direction_probability}')
+    print(f'Epsilon: {epsilon}')
+    print(f'Max iterations: {max_iterations}')
+    print('-----------------------------------------------------------------------------')
+    input('Press Enter to continue...')
+    print()
+    value = policy_evaluation(policy = test_policy, MDP = GridWorld, epsilon = epsilon, max_iterations=max_iterations)
+    print('-----------------------------------------------------------------------------')
+    print()
+    print()
+    print()
+    print()
+    print('Final value estimation:')
+    print(value)
