@@ -230,7 +230,7 @@ def run_policy_evaluation():
     print(value)
     print()
     print('Greedy policy array representation with respect to final value function estimate:')
-    print(greedy_policy_array)
+    print(greedy_policy_scalars)
 
 if __name__ == "__main__":
     import cProfile
