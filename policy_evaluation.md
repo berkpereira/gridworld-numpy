@@ -22,15 +22,23 @@ As of 19/01/2023, it's important to note that the function is designed in a way 
 
 Returns m x n matrix, where m is the number of accessible states and n is the dimension of the MDP grid world.
 
-## ```greedy_policy(value_function, MDP)```
+## ```greedy_policy_array(value_function, MDP)```
 
 Returns an array with the size equal to the MDP's grid world environment, where entries give the greedy policy with respect to the input value function. That is, each scalar entry corresponds to an action which the agent should take aiming to end up at the state accessible to it with the highest value.
 
 Crucial for policy and value iteration.
 
-## ```main()```
+## ```array_to_policy(policy_array, MDP)```
 
-Mainly serves the purpose of actually running algorithms of interest using the functions and classes defined above while displaying useful information, as well as other things such as writing profiler output.
+Takes array of (as of 19/01/2023, deterministic) greedy actions as output by ```greedy_policy_array``` and returns an actual function ```policy(action, state)``` in its most general format, to be used as before in the developed algorithms.
+
+## ```policy_iteration(policy, max_iterations=20)```
+
+Placeholder.
+
+## ```run_policy_evaluation()```
+
+Actually runs algorithm of interest (in this case, policy evaluation) using the functions and classes defined before,  while displaying useful information, as well as other things such as writing profiler output.
 
 # Classes
 
