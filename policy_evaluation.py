@@ -65,8 +65,6 @@ class MarkovGridWorld():
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
         
-        
-        # HERE LIES AN ISSUE. NOT CONSIDERING CLIPPING THE ARRAY AT THE BOUNDARIES OF THE DOMAIN!!!
         successor_probability = 0 # initialise probability of successor, might in the end be sum of various components of stochastics vector
         for direction_number in range(4):
             direction = self.action_to_direction[direction_number]
@@ -156,7 +154,7 @@ def accessible_states(current_state, MDP):
 # from this, still need to construct a policy as a function policy(action, state), which returns a probability distribution over actions, given some current state
 # keep in mind that such a greedy policy will always be deterministic, so the probability distribution will be very boring, with 1 assigned to the greedy action and 0 elsewhere
 # however, this general structure is useful as it can be used directly in the generalised policy evaluation algorithm we've implemented, which assumes that form of a policy(action, satte)
-def greedy_policy(value_function, MDP):
+def greedy_policy_array(value_function, MDP):
     policy_array = np.empty(shape=(MDP.grid_size, MDP.grid_size)) # this array stores actions (0,1,2,3) which codify the greedy policy
     for state in MDP.state_space:
         potential_next_states = accessible_states(state, MDP)
@@ -168,6 +166,28 @@ def greedy_policy(value_function, MDP):
                 max_next_value = potential_value
         policy_array[tuple(state.astype(int))] = MDP.direction_to_action(greedy_direction)
     return policy_array
+
+# take array of scalar action representations and transform it into an actual policy(action, state)
+def array_to_policy(policy_array, MDP):
+    # the below is a 3D array, which applies for a 2D grid world
+    # for 3D grid world, will need 4D array
+    
+    # rows and columns plainly stand for the state in 2D grid world
+    # depth is equal to len(MDP.action_space)
+    # entries at [depth, row, column] give probability of taking action represented by scalar depth, given a state represented by [row, column]
+    state_action_probabilities = np.zeros(shape = (len(MDP.action_space), MDP.grid_size, MDP.grid_size)) # note how NumPy indexes as [depth, rows, cols]
+    for index in np.ndindex(MDP.grid_size, MDP.grid_size):
+        greedy_action = policy_array[index]
+        state_action_probabilities[(greedy_action,) + index] = 1 # deterministic policy: just set probability of a single action to 1
+    # policy function itself just has to index the 3D array we've created, which contains all the information
+    def policy(action, state):
+        return state_action_probabilities[(action,) + tuple(state.astype(int))]
+    # return policy function
+    return policy
+
+# carry out policy iteration up to some limit number of iterations, or until policy stabilises
+def policy_iteration(policy, max_iterations=20):
+    pass
 
 def main():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -196,7 +216,7 @@ def main():
     input('Press Enter to continue...')
     print()
     value = policy_evaluation(policy = test_policy, MDP = GridWorld, epsilon = epsilon, max_iterations=max_iterations)
-    greedy_policy_array = greedy_policy(value, GridWorld)
+    greedy_policy_scalars = greedy_policy_array(value, GridWorld)
     print('-----------------------------------------------------------------------------')
     print()
     print()
@@ -206,8 +226,7 @@ def main():
     print(value)
     print()
     print('Greedy policy ARRAY (NOT ACTUAL policy(action,state) JUST YET, NEED TO ADAPT THAT) with respect to final value function estimate:')
-    print(greedy_policy_array)
-
+    print(greedy_policy_scalars)
 
 if __name__ == "__main__":
     import cProfile
