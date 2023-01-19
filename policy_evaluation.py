@@ -141,7 +141,8 @@ def is_accessible(current_state, successor_state):
 # since this is intended for generating greedy policies and other useful stuff, we'll rule out the agent's own state, even when that is accessible (e.g., by trying to move outside of the domain boundaries)
 def accessible_states(current_state, MDP):
     output = np.array([])
-    for action in range(4):
+    action_space_size = len(MDP.action_space)
+    for action in range(action_space_size):
         direction = MDP.action_to_direction[action]
         potential_accessible = np.clip(current_state + direction, 0, MDP.grid_size - 1) 
         if not np.array_equal(potential_accessible, current_state):
