@@ -7,9 +7,6 @@ import numpy as np
 def test_policy(action, state):
     return 0.25
 
-
-
-
 # this class codifies all the dynamics of the problem: a simple gridworld, with the target in the lower-right corner.
 # as a starter in implementing GridWorld stochastics, I will try to program simple stochastics into this gridworld's dynamics
 # E.G., given a certain action in a rectangular direction, we can assign the successor state some stochastics like
@@ -98,7 +95,6 @@ class MarkovGridWorld():
             new_state = self.terminal_state
         return new_state, self.reward(new_state)
 
-
 # epsilon = the threshold delta must go below in order for us to stop
 def policy_evaluation(policy, MDP, epsilon=0, max_iterations=20):
     current_value = np.zeros([MDP.grid_size, MDP.grid_size])
@@ -172,9 +168,7 @@ def greedy_policy(value_function, MDP):
         policy_array[tuple(state.astype(int))] = MDP.direction_to_action(greedy_direction)
     return policy_array
 
-
-
-if __name__ == "__main__":
+def main():
     os.system('cls' if os.name == 'nt' else 'clear')
     default = input('Run policy evaluation with default parameters? (y/n) ')
     if default.split()[0][0].upper() == 'Y':
@@ -212,3 +206,19 @@ if __name__ == "__main__":
     print()
     print('Greedy policy ARRAY (NOT ACTUAL policy(action,state) JUST YET, NEED TO ADAPT THAT) with respect to final value function estimate:')
     print(greedy_policy_array)
+
+
+if __name__ == "__main__":
+    import cProfile
+    cProfile.run('main()', 'output.dat')
+
+    import pstats
+    from pstats import SortKey
+
+    with open("output_time.txt", "w") as f:
+        p = pstats.Stats("output.dat", stream=f)
+        p.sort_stats("time").print_stats()
+
+    with open("output_calls.txt", "w") as f:
+        p = pstats.Stats("output.dat", stream=f)
+        p.sort_stats("calls").print_stats()
