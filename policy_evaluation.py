@@ -155,7 +155,7 @@ def accessible_states(current_state, MDP):
 # keep in mind that such a greedy policy will always be deterministic, so the probability distribution will be very boring, with 1 assigned to the greedy action and 0 elsewhere
 # however, this general structure is useful as it can be used directly in the generalised policy evaluation algorithm we've implemented, which assumes that form of a policy(action, satte)
 def greedy_policy_array(value_function, MDP):
-    policy_array = np.empty(shape=(MDP.grid_size, MDP.grid_size)) # this array stores actions (0,1,2,3) which codify the greedy policy
+    policy_array = np.empty(shape=(MDP.grid_size, MDP.grid_size), dtype='int32') # this array stores actions (0,1,2,3) which codify the greedy policy
     for state in MDP.state_space:
         potential_next_states = accessible_states(state, MDP)
         max_next_value = np.NINF # initialise max value attainable as minus infinity
@@ -178,10 +178,13 @@ def array_to_policy(policy_array, MDP):
     state_action_probabilities = np.zeros(shape = (len(MDP.action_space), MDP.grid_size, MDP.grid_size)) # note how NumPy indexes as [depth, rows, cols]
     for index in np.ndindex(MDP.grid_size, MDP.grid_size):
         greedy_action = policy_array[index]
+        
         state_action_probabilities[(greedy_action,) + index] = 1 # deterministic policy: just set probability of a single action to 1
-    # policy function itself just has to index the 3D array we've created, which contains all the information
+    
+    # policy function itself just has to index the 3D array we've created, which contains all the policy-defining information
     def policy(action, state):
         return state_action_probabilities[(action,) + tuple(state.astype(int))]
+    
     # return policy function
     return policy
 
@@ -189,7 +192,7 @@ def array_to_policy(policy_array, MDP):
 def policy_iteration(policy, max_iterations=20):
     pass
 
-def main():
+def run_policy_evaluation():
     os.system('cls' if os.name == 'nt' else 'clear')
     default = input('Run policy evaluation with default parameters? (y/n) ')
     if default.split()[0][0].upper() == 'Y':
@@ -217,6 +220,7 @@ def main():
     print()
     value = policy_evaluation(policy = test_policy, MDP = GridWorld, epsilon = epsilon, max_iterations=max_iterations)
     greedy_policy_scalars = greedy_policy_array(value, GridWorld)
+    greedy_policy = array_to_policy(greedy_policy_scalars, GridWorld)
     print('-----------------------------------------------------------------------------')
     print()
     print()
@@ -225,12 +229,12 @@ def main():
     print('Final value estimation:')
     print(value)
     print()
-    print('Greedy policy ARRAY (NOT ACTUAL policy(action,state) JUST YET, NEED TO ADAPT THAT) with respect to final value function estimate:')
-    print(greedy_policy_scalars)
+    print('Greedy policy array representation with respect to final value function estimate:')
+    print(greedy_policy_array)
 
 if __name__ == "__main__":
     import cProfile
-    cProfile.run('main()', 'output.dat')
+    cProfile.run('run_policy_evaluation()', 'output.dat')
 
     import pstats
     from pstats import SortKey
