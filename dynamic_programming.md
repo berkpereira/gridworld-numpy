@@ -48,7 +48,9 @@ Returns array representation of policy that comes out of value iteration algorit
 
 The value iteration algorithm is the same as the policy iteration algorithm in the case where we truncate value evaluation to a single iteration. Thus, the function is equivalent to ```policy_iteration(policy, MDP, evaluation_max_iterations=1, improvement_max_iterations=max_iterations)```.
 
-As of 20/01/2023, from a uniformly random initial policy, policy stabilisation on 10x10 grid world takes approximately 21 seconds.
+As of 20/01/2023, from a uniformly random initial policy, policy stabilisation on 10x10 grid world takes approximately 21 seconds. For 20x20 grid world, takes approximately 362 seconds / 6 minutes.
+
+Around this size range, given an NxN grid world environment, the algorithm execution time appears to scale as something between O(N<sup>3</sup>) and O(N<sup>4</sup>), depending on N.
 
 ## ```run_policy_evaluation()```
 
