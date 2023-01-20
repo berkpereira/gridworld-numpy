@@ -94,8 +94,12 @@ class MarkovGridWorld():
         return new_state, self.reward(new_state)
 
 # epsilon = the threshold delta must go below in order for us to stop
-def policy_evaluation(policy, MDP, epsilon=0, max_iterations=20):
-    current_value = np.zeros([MDP.grid_size, MDP.grid_size])
+def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=1):
+    if initial_value is None:
+        current_value = np.zeros([MDP.grid_size, MDP.grid_size])
+    else:
+        current_value = initial_value
+
     change = np.zeros([MDP.grid_size, MDP.grid_size]) # this will store the change in the value for each state, in the latest iteration
     delta = 0 # initialising the variable that will store the max change in the value_function across all states
     iteration_no = 1
@@ -188,9 +192,40 @@ def array_to_policy(policy_array, MDP):
     # return policy function
     return policy
 
+# fuse greedy_policy_array and array_to_policy
+# go directly from value function to greedy policy as function of action and state
+def value_to_greedy_policy(value_function, MDP):
+    policy_array = greedy_policy_array(value_function, MDP)
+    return array_to_policy(policy_array, MDP)
+
 # carry out policy iteration up to some limit number of iterations, or until policy stabilises
-def policy_iteration(policy, max_iterations=20):
-    pass
+# policy_evaluation(policy, MDP, epsilon, max_iterations)
+def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_iterations=10):
+    iteration_count = 1
+    policy_is_stable = False
+    current_policy = policy
+    initial_value = None
+    current_policy_array = np.ones(shape=(MDP.grid_size, MDP.grid_size), dtype='int32') * -10 # initialise greedy policy array to a bogus instance
+    while policy_is_stable is False and iteration_count <= improvement_max_iterations:
+        # as per Sutton Barto 2nd, chapter 4.3, next iteration is better-converging if we
+        # start with the previous value estimate, hence the assignment into initial_value
+        initial_value = policy_evaluation(current_policy, MDP, initial_value, epsilon=0, max_iterations=evaluation_max_iterations)
+        new_policy_array = greedy_policy_array(initial_value, MDP)
+        
+        if np.array_equal(new_policy_array, current_policy_array):
+            policy_is_stable = True
+            break # stop iterating
+
+        current_policy_array = new_policy_array
+        current_policy = array_to_policy(new_policy_array, MDP)
+        iteration_count += 1
+    
+    return current_policy_array
+    
+# value iteration is simply policy iteration for the case where we
+def value_iteration(policy, MDP, max_iterations):
+    return policy_iteration(policy, MDP, evaluation_max_iterations=1, improvement_max_iterations=max_iterations)
+
 
 def run_policy_evaluation():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -218,7 +253,7 @@ def run_policy_evaluation():
     print('-----------------------------------------------------------------------------')
     input('Press Enter to continue...')
     print()
-    value = policy_evaluation(policy = test_policy, MDP = GridWorld, epsilon = epsilon, max_iterations=max_iterations)
+    value = policy_evaluation(policy = test_policy, MDP = GridWorld, initial_value = None, epsilon = epsilon, max_iterations=max_iterations)
     greedy_policy_scalars = greedy_policy_array(value, GridWorld)
     greedy_policy = array_to_policy(greedy_policy_scalars, GridWorld)
     print('-----------------------------------------------------------------------------')
