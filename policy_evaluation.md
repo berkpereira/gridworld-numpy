@@ -6,7 +6,7 @@ Defines a policy to be used as a starting point. Returns a probability of select
 
 ## ```policy_evaluation(policy, MDP, epsilon, max_iterations)```
 
-Performs policy evaluation, given a policy, an MDP (Markov Decision Process) definition, and parameters for iteration termination (epsilon is used as a error tolerance at which point no more iterations are done; otherwise, stops when max_iterations have been performed).
+Returns estimate of value function as a function of state, following a given policy. Inputs are the policy, an MDP (Markov Decision Process) definition, and parameters for iteration termination (epsilon is used as a error tolerance at which point no more iterations are done; otherwise, stops when max_iterations have been performed).
 
 As of 19/01/2023, the entire function relies on explicit ```for``` loops to run the algorithm. A potential goal would be to vectorise all of these operations, thus getting a big performance boots, but this requires a lot of hard thinking about complicated multi-dimensional arrays. Thus this is put behind the bigger priority of building reasonable algorithms that work reasonably well on models reasonably resembling the real problem scenario of interest.
 
@@ -32,9 +32,23 @@ Crucial for policy and value iteration.
 
 Takes array of (as of 19/01/2023, deterministic) greedy actions as output by ```greedy_policy_array``` and returns an actual function ```policy(action, state)``` in its most general format, to be used as before in the developed algorithms.
 
-## ```policy_iteration(policy, max_iterations=20)```
+## ```value_to_greedy_policy()```
 
-Placeholder.
+Returns greedy policy (function of action, state) given a value function. Basically just a chaining together of ```greedy_policy_array```and ```array_to_policy```.
+
+## ```policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_iterations=10)```
+
+Returns array representation of policy that comes out of policy iteration algorithm.
+
+The policy iteration algorithm first evaluates the current policy via value evaluation (itself an iterative algorithm which runs up to a maximum of ```evaluation_max_iterations```), defines a new and improved greedy policy, and repeates the whole process up to ```improvement_max_iterations``` times. Outer (improvement) loop breaks if the new greedy policy array representation is equal to the current one, meaning the policy has stabilised and is, therefore, optimal (see Sutton, Barto 2nd, 4.3).
+
+## ```value_iteration(policy, MDP, max_iterations)```
+
+Returns array representation of policy that comes out of value iteration algorithm.
+
+The value iteration algorithm is the same as the policy iteration algorithm in the case where we truncate value evaluation to a single iteration. Thus, the function is equivalent to ```policy_iteration(policy, MDP, evaluation_max_iterations=1, improvement_max_iterations=max_iterations)```.
+
+As of 20/01/2023, from a uniformly random initial policy, policy stabilisation on 10x10 grid world takes approximately 21 seconds.
 
 ## ```run_policy_evaluation()```
 
@@ -45,6 +59,11 @@ Actually runs algorithm of interest (in this case, policy evaluation) using the 
 ## ```MarkovGridWorld()```
 
 Defines the (as of 19/01/2023, 2D) grid world MDP. This includes defining the environment's size, state space (and terminal state), action space, dynamics (including any potential stochastics), reward signals, and discount factor.
+
+0 is down.
+1 is right.
+2 is up.
+3 is left.
 
 ### ```direction_to_action(self,direction)```
 
