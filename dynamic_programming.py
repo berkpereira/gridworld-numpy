@@ -18,7 +18,7 @@ class MarkovGridWorld():
         self.grid_size = grid_size # keep this unchanged, things are mostly hardcoded at the moment
         self.action_space = (0,1,2,3)
         self.discount_factor = discount_factor
-        self.terminal_state = np.array([grid_size-1, grid_size-1]) # terminal state in the bottom right corner
+        self.terminal_state = np.array([np.floor(grid_size / 2), np.floor(grid_size / 2)]) # terminal state in the bottom right corner
         self.action_to_direction = {
             0: np.array([1, 0]), # down
             1: np.array([0, 1]), # right
@@ -105,11 +105,11 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=1):
     delta = 0 # initialising the variable that will store the max change in the value_function across all states
     iteration_no = 1
     while (delta == 0 or delta > epsilon) and iteration_no <= max_iterations:
-        print(f'Iteration number: {iteration_no}')
-        print()
-        print('Current value function estimate:')
-        print(current_value)
-        print()
+        #print(f'Iteration number: {iteration_no}')
+        #print()
+        #print('Current value function estimate:')
+        #print(current_value)
+        #print()
         # below 3 lines effectively equivalent to 'for state in state space of MDP'
         for state in MDP.state_space:
             old_state_value = current_value[tuple(state.astype(int))]
@@ -122,12 +122,12 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=1):
             current_value[tuple(state.astype(int))] = current_value_update
             change[tuple(state.astype(int))] = abs(current_value[tuple(state.astype(int))] - old_state_value)
         delta = change.max()
-        print('Absolute changes to value function estimate:')
-        print(change)
-        print()
-        print()
-        print()
-        print()
+        #print('Absolute changes to value function estimate:')
+        #print(change)
+        #print()
+        #print()
+        #print()
+        #print()
         iteration_no += 1
     return current_value
 
@@ -210,6 +210,12 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
     while policy_is_stable is False and iteration_count <= improvement_max_iterations:
         # as per Sutton Barto 2nd, chapter 4.3, next iteration is better-converging if we
         # start with the previous value estimate, hence the assignment into initial_value
+        print(f'Iteration number: {iteration_count}')
+        print(f'Terminal state: {MDP.terminal_state}')
+        print('Current greedy policy array:')
+        print(current_policy_array)
+        print()
+
         initial_value = policy_evaluation(current_policy, MDP, initial_value, epsilon=0, max_iterations=evaluation_max_iterations)
         new_policy_array = greedy_policy_array(initial_value, MDP)
         
@@ -221,15 +227,17 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
         current_policy = array_to_policy(new_policy_array, MDP)
         iteration_count += 1
     
+    print('Final policy array:')
+    print(current_policy_array)
+    print()
     return current_policy_array
     
 # value iteration is simply policy iteration for the case where we
 def value_iteration(policy, MDP, max_iterations):
     return policy_iteration(policy, MDP, evaluation_max_iterations=1, improvement_max_iterations=max_iterations)
 
-
 def run_policy_evaluation():
-    os.system('cls' if os.name == 'nt' else 'clear')
+    os.system('clear')
     default = input('Run policy evaluation with default parameters? (y/n) ')
     if default.split()[0][0].upper() == 'Y':
         grid_size = 3
@@ -269,12 +277,13 @@ def run_policy_evaluation():
     print(greedy_policy_scalars)
 
 def run_value_iteration(policy=test_policy, grid_size=3, max_iterations=100):
+    os.system('clear')
     MDP = MarkovGridWorld(grid_size=grid_size)
     st = time.time()
-    print(value_iteration(policy, MDP, max_iterations=max_iterations))
+    value_iteration(policy, MDP, max_iterations=max_iterations)
     et = time.time()
     elapsed_time = et - st
-    print(f'Elapsed time: {elapsed_time}')
+    print(f'Elapsed time: {elapsed_time} seconds')
 
 if __name__ == "__main__":
     import cProfile
