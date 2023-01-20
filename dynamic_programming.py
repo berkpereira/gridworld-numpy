@@ -1,6 +1,7 @@
 # here we implement policy iteration based on the simple gridworld run by explore.py
 # using OpenAI gyms for this would pose some challenges at first, but the problem is simple enough to just be put together using numpy arrays
 import os
+import time
 import numpy as np
 
 # even though not being used at the moment, for generality we're defining the policy as being a function of an action and a current state
@@ -266,6 +267,14 @@ def run_policy_evaluation():
     print()
     print('Greedy policy array representation with respect to final value function estimate:')
     print(greedy_policy_scalars)
+
+def run_value_iteration(policy=test_policy, grid_size=3, max_iterations=100):
+    MDP = MarkovGridWorld(grid_size=grid_size)
+    st = time.time()
+    print(value_iteration(policy, MDP, max_iterations=max_iterations))
+    et = time.time()
+    elapsed_time = et - st
+    print(f'Elapsed time: {elapsed_time}')
 
 if __name__ == "__main__":
     import cProfile
