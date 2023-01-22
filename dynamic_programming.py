@@ -27,6 +27,7 @@ class MarkovGridWorld():
         }
         self.rng = np.random.default_rng() # construct a default numpy random number Generator class instance, to use in stochastics
         self.direction_probability = direction_probability
+        self.prob_other_directions = (1 - self.direction_probability) / 3
         # for ease of iterating over all states, define a 2 x (grid_size**2) matrix below
         self.state_space = np.zeros(shape=(self.grid_size**2,2))
         state_counter = 0
@@ -57,11 +58,11 @@ class MarkovGridWorld():
             else:
                 return 0
         
-        prob_other_directions = (1 - self.direction_probability) / 3
+        #prob_other_directions = (1 - self.direction_probability) / 3
         # the stochastics array describes the probability, given an action from (0,1,2,3), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.1,0.7,0.1,0.1], then the resulting successor state will be what we would expect of action == 1 with 70% probability,
         # and 10% probability for each of the other directions 
-        stochastics = np.ones(4) * prob_other_directions
+        stochastics = np.ones(4) * self.prob_other_directions
         stochastics[action] = self.direction_probability
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
@@ -81,8 +82,8 @@ class MarkovGridWorld():
         # the stochastics array describes the probability, given an action from (0,1,2,3), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.1,0.7,0.1,0.1], then the resulting successor state will be what we would expect of action == 1 with 70% probability,
         # and 10% probability for each of the other directions 
-        prob_other_directions = (1 - self.direction_probability) / 3
-        stochastics = np.ones(4) * prob_other_directions
+        #prob_other_directions = (1 - self.direction_probability) / 3
+        stochastics = np.ones(4) * self.prob_other_directions
         stochastics[action] = self.direction_probability
         effective_action = self.rng.choice(4, p=stochastics) # this is the effective action, after sampling from the given-action-biased distribution. Most times this will be equal to action
         effective_direction = self.action_to_direction[effective_action]
@@ -231,8 +232,7 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
     print(current_policy_array)
     print()
     return current_policy_array
-    
-# value iteration is simply policy iteration for the case where we
+
 def value_iteration(policy, MDP, max_iterations):
     return policy_iteration(policy, MDP, evaluation_max_iterations=1, improvement_max_iterations=max_iterations)
 
@@ -276,7 +276,7 @@ def run_policy_evaluation():
     print('Greedy policy array representation with respect to final value function estimate:')
     print(greedy_policy_scalars)
 
-def run_value_iteration(policy=test_policy, grid_size=3, max_iterations=100):
+def run_value_iteration(policy=test_policy, grid_size=9, max_iterations=100):
     os.system('clear')
     MDP = MarkovGridWorld(grid_size=grid_size)
     st = time.time()
@@ -287,7 +287,7 @@ def run_value_iteration(policy=test_policy, grid_size=3, max_iterations=100):
 
 if __name__ == "__main__":
     import cProfile
-    cProfile.run('run_policy_evaluation()', 'output.dat')
+    cProfile.run('run_value_iteration()', 'output.dat')
 
     import pstats
     from pstats import SortKey
