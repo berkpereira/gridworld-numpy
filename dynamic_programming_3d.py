@@ -16,31 +16,40 @@ def test_policy(action, state):
 class MarkovGridWorld():
     def __init__(self, grid_size=3, discount_factor=1, direction_probability = 1, start_altitude = None):
         self.grid_size = grid_size
+
+        self.landing_zone = np.array([np.floor(grid_size / 2), np.floor(grid_size / 2)], dtype='int32') # wanting to land in centre of grid
         
         if start_altitude is None:
-            self.start_altitude = self.grid_size ** 2 # sensible ballpark figure
+            self.start_altitude = self.grid_size ** 2 # sensible ballpark figure if none else is given
         else:
             self.start_altitude = start_altitude
         
-        self.action_space = (0,1,2,3)
+        # action 4 corresponds to landing manoeuvre
+        self.action_space = (0, 1, 2, 3, 4)
         self.discount_factor = discount_factor
-        # self.terminal_state is still defined in 2D for now
-        self.terminal_state = np.array([np.floor(grid_size / 2), np.floor(grid_size / 2)]) # terminal state in the bottom right corner
+        
+        # terminal state is assigned directly to a crash or right after landing manoeuvre reward has been collected, subsequent rewards are always 0 
+        # just a reserved state for representation of episode termination in dynamic programming algorithms
+        self.terminal_state = np.array([0, 0, 0], dtype='int32')
         self.action_to_direction = {
-            0: np.array([1, 0]), # down
-            1: np.array([0, 1]), # right
-            2: np.array([-1, 0]), # up
-            3: np.array([0, -1]), # left
+            0: np.array([1, 0], dtype='int32'), # down
+            1: np.array([0, 1], dtype='int32'), # right
+            2: np.array([-1, 0], dtype='int32'), # up
+            3: np.array([0, -1], dtype='int32'), # left
         }
         self.rng = np.random.default_rng() # construct a default numpy random number Generator class instance, to use in stochastics
         self.direction_probability = direction_probability
         self.prob_other_directions = (1 - self.direction_probability) / 3
         # for ease of iterating over all states, define a 2 x (grid_size**2) matrix below
-        self.state_space = np.zeros(shape=(self.grid_size**2 * (self.start_altitude + 1),3))
-        state_counter = 0
+        self.state_space = np.zeros(shape=(self.grid_size**2 * (self.start_altitude * 2) + 1,3), dtype='int32')
+        state_counter = 1 # start counting at 1 because state indexed by 0 is self.terminal_state, all zeros, already as defined
         for row in range(self.grid_size):
             for col in range(self.grid_size):
-                for altitude in range(self.start_altitude + 1): # altitude now gives us 3D
+                for altitude in range(-self.start_altitude, self.start_altitude + 1): # +ve and -ve altitude now gives us 3D
+                    # -ve altitude signifies landing manoeuvre has been pulled
+                    # 0 altitude is terminal/crash, reserved for self.terminal_state
+                    if altitude == 0:
+                        continue
                     self.state_space[state_counter, :] = [row, col, altitude]
                     state_counter += 1
 
@@ -50,14 +59,13 @@ class MarkovGridWorld():
                 return action
 
     def reward(self, state):
-        if np.array_equal(state, self.terminal_state):
-            return 0
+        if np.array_equal(self.landing_zone, state) and state[2] < 0: # agent has landed on landing zone
+            return 100 / (- state[2]) # reward is larger the closer agent was to ground when it performed landing
         else:
-            return -1
+            return 0
 
-
-    # environment dynamics give the probability of a successor state, given a current state and an action
-    # crucial to define these in this generalised form, in order to implement general policy evaluation algorithm
+    # environment dynamics give the probability of a successor state, given a current state and an action.
+    # crucial to define these in this generalised form, in order to implement general policy evaluation algorithm.
     def environment_dynamics(self, successor_state, current_state, action):
         # first, consider the case where the current state is the terminal state
         if np.array_equal(current_state, self.terminal_state):
