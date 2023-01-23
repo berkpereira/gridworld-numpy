@@ -90,3 +90,17 @@ Returns a 2-element array corresponding to an action given in terms of a scalar 
 #### ```MDP.reward(self, state)```
 
 Returns reward signal as a function of just the state. As of 23/01/2023, reward of any state except for a state landed (altitude < 0)at prescribed landing zone (```MDP.terminal_state```) is 0. If the agent has landed at the location of a prescribed landing zone, the reward is higher the closer the agent was to the ground upon performing the landing manoeuvre. Thus the maximum reward is given to the state ```[MDP.terminal_state, -1]```.
+
+#### ```MDP.environment_dynamics(self, successor_state, current_state, action)```
+
+Returns the probability of the agent going from ```current_state``` to ```successor_state```, given ```action```.
+One of the most vital methods of the MarkovGridWorld() class for dynamic programming.
+
+This is one of the most important functions for carrying out dynamic programming algorithms (policy evaluation at the core of it) because it is kept in its most general and omniscient form: returning probabilities for successor states from current states given an action.
+This is in stark contrast to ```MDP.state_transition```, which is not in this general form. That method instead just samples the dynamics of the MDP, thus returning a sampled successor state as a function of just the current state and an action. Thus, this will be useful for running simulations or for Monte Carlo methods, but ***not*** for dynamic programming methods.
+
+#### ```MDP.state_transition(self, state, action)```
+
+Returns a successor state as a function of ```state``` and ```action```, by sampling of the environment's generally stochastic dynamics.
+
+**NOTE**: This is (as of 23/01/2023) not yet adapted for 3D environment use. This is because it is not used in dynamic programming algorithms (```MDP.environment_dynamics``` is the method used for that), which is where the focus is for now. Will need to adapt this method if running individual episodes/simulations or resorting to Monte Carlo methods, which are based on averaging sampled agent experiences.
