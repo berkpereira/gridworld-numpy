@@ -6,7 +6,7 @@ import numpy as np
 
 # for generality we're defining the policy as being a function of an action and a current state
 def test_policy(action, state):
-    return 0.25
+    return 0.2
 
 # just lands!
 def land_policy(action, state):
