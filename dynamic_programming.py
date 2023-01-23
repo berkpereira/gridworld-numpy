@@ -18,7 +18,7 @@ class MarkovGridWorld():
         self.grid_size = grid_size # keep this unchanged, things are mostly hardcoded at the moment
         self.action_space = (0,1,2,3)
         self.discount_factor = discount_factor
-        self.terminal_state = np.array([np.floor(grid_size / 2), np.floor(grid_size / 2)]) # terminal state in the bottom right corner
+        self.terminal_state = np.array([np.floor(grid_size / 2), np.floor(grid_size / 2)]) # terminal state
         self.action_to_direction = {
             0: np.array([1, 0]), # down
             1: np.array([0, 1]), # right

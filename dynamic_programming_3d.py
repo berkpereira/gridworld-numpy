@@ -107,7 +107,7 @@ class MarkovGridWorld():
         return successor_probability
 
     # this is where the dynamics are actually sampled.
-    # it's not used in the dynamic programming algorithms because those require the actual probability distributions of state transitions as functions of actions.
+    # it's NOT used in the dynamic programming algorithms because those require the actual probability distributions of state transitions as functions of actions.
     # will be used if we move onto Monte Carlo methods or to just run individual episodes of the environment/agent/policy.
     def state_transition(self, state, action):
         # the stochastics array describes the probability, given an action from (0,1,2,3), of the result corresponding to what we'd expect from each of those actions
