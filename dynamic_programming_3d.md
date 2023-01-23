@@ -84,7 +84,7 @@ Defines the 3D grid world MDP. This includes defining the environment's size, st
 
 #### ```MDP.state_space```
 
-The state space is a matrix composed of stacked 3-element np.arrays, each representing a state. Each of these arrays is of the form [x,y,z]. Whatever the initial state, all actions (except for the landing action) lead the agent's z/altitude to decrease by 1. Otherwise the actions move the agent about in the xy plane as before, with all the potential stochastics also implemented as before, etc.
+The state space is a matrix composed of stacked 3-element np.arrays, each representing a state. Each of these arrays is of the form [altitude, x, y]. Whatever the initial state, all actions (except for the landing action) lead the agent's altitude to decrease by 1. Otherwise the actions move the agent about in the xy plane as before, with all the potential stochastics also implemented as before, etc.
 
 #### ```MDP.action_space```
 
@@ -95,7 +95,9 @@ The 3D action space is a 5-element tuple (0,1,2,3,4). As before, in each horizon
 - 2 —> up.
 - 3 —> left.
 
-The 3D environment brings a new action numbered 4. This is the ***landing*** action. The agent can take this action from any state with altitude > 0. Taking the landing action from state [x,y,altitude] leads the agent to state [x,y,-altitude]. The existence of these states with negative altitude serves the purpose of maintaining the reward signal as a function of state alone. In order to keep that structure we require a state that informs the algorithms that the agent has just landed at some point from a given altitude. Then, the reward signal is awarded based on the altitude from which the agent landed (landing from altitude 1 is the ideal case, the higher up the worse the reward should be), and in future the proximity to the prescribed landing zone might be taken into account too (as of 23/01/2023, only landing in the exact prescribed spot yields any reward).
+The 3D environment brings a new action numbered 4. This is the ***landing*** action. The agent can take this action from any state with altitude > 0. Taking the landing action from state [altitude, x, y] leads the agent to state [altitude + MDP.max_altitude, x, y]. The existence of these states with altitude above MDP.max_altitude serves the purpose of maintaining the reward signal as a function of state alone. In order to keep that structure we require a state that informs the algorithms that the agent has just landed at some point from a given altitude. Then, the reward signal is awarded based on the altitude from which the agent landed (landing from altitude 1 is the ideal case, the higher up the worse the reward should be), and in future the proximity to the prescribed landing zone might be taken into account too (as of 23/01/2023, only landing in the exact prescribed spot yields any reward).
+
+Before, the 'landing performed' state signal came from having negative altitudes. This, however, disallowed us from directly indexing the value function using the state (negative indices would make it all a mess). Thus the change to positive altitudes above the MDP-set ceiling, which still contains all the necessary information — easy to discern, and uniquely identifying the altitude when the landing manoeuvre was performed (via the modulo operator).
 
 ### Methods
 
