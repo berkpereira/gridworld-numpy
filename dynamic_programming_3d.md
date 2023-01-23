@@ -1,4 +1,4 @@
-# This piece of documentation, as of 23/01/2023, just mirrors that of the 2D dynamic programming documentation. This is not quite right for most functions/methods, so needs adaptation over to the 3D case, which is still in early development.
+# This piece of documentation, as of 23/01/2023, just mirrors that of the 2D dynamic programming documentation. This is not quite right for most functions/methods, so needs adaptation over to the 3D case, which is still in early development. Only some of the MDP methods' documentations have been crucially adapted.
 
 # Functions
 
@@ -79,7 +79,7 @@ The 3D action space is a 5-element tuple (0,1,2,3,4). As before, in each horizon
 - 2 —> up.
 - 3 —> left.
 
-The 3D environment brings a new action numbered 4. This is the ***landing*** action. The agent can take this action from any state with altitude > 0. Taking the landing action from state [x,y,altitude] leads the agent to state [x,y,-altitude]. The existence of these states with negative altitude serves the purpose of maintaining the reward signal as a function of state alone. In order to keep that structure we require a state that informs the algorithms that the agent has just landed at some point from a given altitude. Then, the reward signal will (as of 23/01/2023, still not implemented) be awarded based, potentially, on the altitude from which the agent landed (landing from altitude 1 is the ideal case, the higher up the worse the reward should be), as well as perhaps based on the distance from the prescribed landing zone (landing on it would be the ideal case, the further away from it the worse the reward should be).
+The 3D environment brings a new action numbered 4. This is the ***landing*** action. The agent can take this action from any state with altitude > 0. Taking the landing action from state [x,y,altitude] leads the agent to state [x,y,-altitude]. The existence of these states with negative altitude serves the purpose of maintaining the reward signal as a function of state alone. In order to keep that structure we require a state that informs the algorithms that the agent has just landed at some point from a given altitude. Then, the reward signal is awarded based on the altitude from which the agent landed (landing from altitude 1 is the ideal case, the higher up the worse the reward should be), and in future the proximity to the prescribed landing zone might be taken into account too (as of 23/01/2023, only landing in the exact prescribed spot yields any reward).
 
 ### Methods
 
