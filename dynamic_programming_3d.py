@@ -127,13 +127,14 @@ class MarkovGridWorld():
         return new_state, self.reward(new_state)
 
 # epsilon = the threshold delta must go below in order for us to stop
+# value function is held in a column vector of size equal to len(MDP.state_space)
 def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=1):
     if initial_value is None:
-        current_value = np.zeros([MDP.grid_size, MDP.grid_size])
+        current_value = np.zeros((len(MDP.state_space), 1)) # default initial guess is all zeros
     else:
         current_value = initial_value
 
-    change = np.zeros([MDP.grid_size, MDP.grid_size]) # this will store the change in the value for each state, in the latest iteration
+    change = np.zeros((len(MDP.state_space), 1)) # this will store the change in the value for each state, in the latest iteration
     delta = 0 # initialising the variable that will store the max change in the value_function across all states
     iteration_no = 1
     while (delta == 0 or delta > epsilon) and iteration_no <= max_iterations:
@@ -142,7 +143,9 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=1):
         #print('Current value function estimate:')
         #print(current_value)
         #print()
-        # below 3 lines effectively equivalent to 'for state in state space of MDP'
+
+        # in 2D, we indexed the value function data structure by the raw state (then a 2D vector).
+        # In 3D we have to switch to indexing by a single number, because the value is stored in a column vector.
         for state in MDP.state_space:
             old_state_value = current_value[tuple(state.astype(int))]
             current_value_update = 0
