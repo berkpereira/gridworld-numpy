@@ -64,17 +64,28 @@ class MarkovGridWorld():
         else:
             return 0
 
-    # environment dynamics give the probability of a successor state, given a current state and an action.
+    # returns the probability of a successor state, given a current state and an action.
     # crucial to define these in this generalised form, in order to implement general policy evaluation algorithm.
     def environment_dynamics(self, successor_state, current_state, action):
-        # first, consider the case where the current state is the terminal state
-        if np.array_equal(current_state, self.terminal_state):
+        # first, consider the case where agent has landed or crashed, or was already in terminal state before.
+        # nowhere to go from terminal state except to the terminal state.
+        if current_state[2] <= 0: # agent has landed (< 0), crashed (= 0), or has already been in the terminal state
             if np.array_equal(successor_state, self.terminal_state):
+                return 1 # can only be taken to terminal_state
+            else:
+                return 0
+
+        # then, consider the landing action:
+        # successor_state is guaranteed to be same as current_state, but with a negative altitude.
+        if action == 4:
+            if np.array_equal(successor_state, np.array([current_state[0], current_state[1], -current_state[2]], dtype='int32')):
                 return 1
             else:
                 return 0
+
+        # FINALLY, consider the case most similar to what we had the most in the 2D environment, where we're considering movement in
+        # horizontal planes. However, have to adapt from the 2D case because we must consider the motion of the agent downwards at each time step.
         
-        #prob_other_directions = (1 - self.direction_probability) / 3
         # the stochastics array describes the probability, given an action from (0,1,2,3), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.1,0.7,0.1,0.1], then the resulting successor state will be what we would expect of action == 1 with 70% probability,
         # and 10% probability for each of the other directions 
@@ -83,17 +94,21 @@ class MarkovGridWorld():
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
         
-        successor_probability = 0 # initialise probability of successor, might in the end be sum of various components of stochastics vector
+        successor_probability = 0 # initialise probability of successor, might in the end be sum of various components of stochastics vector due to environment boundaries.
         for direction_number in range(4):
-            direction = self.action_to_direction[direction_number]
-            if np.array_equal(np.clip(current_state + direction, 0, self.grid_size - 1), successor_state):
-                successor_probability += stochastics[direction_number]
+            direction = self.action_to_direction[direction_number] # iterate over the four 2-element direction vectors
+            # if the direction would lead us from current_state to successor_state, add to the output the probability
+            # that the action given would lead us to that direction.
+            potential_successor = np.zeros(3, dtype='int32') # initialise
+            potential_successor[:2] = np.clip(current_state[:2] + direction, 0, self.grid_size - 1) # assign 2D component, as in 2D version
+            potential_successor[2] = current_state[2] - 1 # assign altitude as current's - 1
+            if np.array_equal(potential_successor, successor_state):
+                successor_probability += stochastics[direction_number] 
         return successor_probability
 
-
-
-
-    # this is where the actual DYNAMICS live
+    # this is where the dynamics are actually sampled.
+    # it's not used in the dynamic programming algorithms because those require the actual probability distributions of state transitions as functions of actions.
+    # will be used if we move onto Monte Carlo methods or to just run individual episodes of the environment/agent/policy.
     def state_transition(self, state, action):
         # the stochastics array describes the probability, given an action from (0,1,2,3), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.1,0.7,0.1,0.1], then the resulting successor state will be what we would expect of action == 1 with 70% probability,
