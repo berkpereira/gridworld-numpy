@@ -8,6 +8,8 @@ Defines a policy to be used as a starting point. Returns a probability of select
 
 ## ```policy_evaluation(policy, MDP, epsilon, max_iterations)```
 
+**NOTE**: As of 23/01/2023, still needs adaptation for 3D. This will require changing the format of the value function, since it cannot anymore be represented by a 2D array that's easily visible. Will need to generalise it to just be a vector with length equal to the size of the state_space, and mostly forget about being able to print it out in an intuitive manner (could be possible, if challenging, with a 3D state, but if we are to add heading or any other additional dimension to the state, it becomes nigh-on impossible!).
+
 Returns estimate of value function as a function of state, following a given policy. Inputs are the policy, an MDP (Markov Decision Process) definition, and parameters for iteration termination (epsilon is used as a error tolerance at which point no more iterations are done; otherwise, stops when max_iterations have been performed).
 
 As of 19/01/2023, the entire function relies on explicit ```for``` loops to run the algorithm. A potential goal would be to vectorise all of these operations, thus getting a big performance boots, but this requires a lot of hard thinking about complicated multi-dimensional arrays. Thus this is put behind the bigger priority of building reasonable algorithms that work reasonably well on models reasonably resembling the real problem scenario of interest.
