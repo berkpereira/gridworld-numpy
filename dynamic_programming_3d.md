@@ -4,19 +4,21 @@
 
 ## ```test_policy(action, state)```
 
-Defines a policy to be used as a starting point. Returns a probability of selecting action given a state. As of 19/01/2023, it's defined simply as returning equal probability of 0.25 for any of 4 actions in 2D (left, right, up down). As I progress from just policy evaluation to policy iteration, this will become basically irrelevant and just an "initial guess" to iterate on.
+Defines a policy to be used as a starting point. Returns a probability of selecting action given a state. Defined as just random action (returns 0.20 no matter the state, no matter the action).
 
-## ```policy_evaluation(policy, MDP, epsilon, max_iterations)```
+See also some alternative simple policies defined for testing purposes.
 
-**NOTE**: As of 23/01/2023, still needs adaptation for 3D. This will require changing the format of the value function, since it cannot anymore be represented by a 2D array that's easily visible. Will need to generalise it to just be a vector with length equal to the size of the state_space, and mostly forget about being able to print it out in an intuitive manner (could be possible, if challenging, with a 3D state, but if we are to add heading or any other additional dimension to the state, it becomes nigh-on impossible!).
+## ```policy_evaluation(policy, MDP, initial_value, epsilon, max_iterations)```
 
-Returns estimate of value function as a function of state, following a given policy. Inputs are the policy, an MDP (Markov Decision Process) definition, and parameters for iteration termination (epsilon is used as a error tolerance at which point no more iterations are done; otherwise, stops when max_iterations have been performed).
+Returns estimate of value as a function of state, following a given policy. Inputs are the policy, an MDP (Markov Decision Process) definition, and parameters for iteration termination (epsilon is used as a error tolerance at which point no more iterations are done; otherwise, stops when max_iterations have been performed).
+
+```initial_value``` is the initial guess of the value function in the entire domain. Having this as an explicit argument (as opposed to, say, initialising it to a zeros array every time) is useful because, in policy (and value) iteration, using ```initial_value``` equal to our estimate of the value function given the previous policy typically results in a great increase in the speed of convergence of policy evaluation (see Sutton and Barto 2nd, Chapter 4.3).
 
 As of 19/01/2023, the entire function relies on explicit ```for``` loops to run the algorithm. A potential goal would be to vectorise all of these operations, thus getting a big performance boots, but this requires a lot of hard thinking about complicated multi-dimensional arrays. Thus this is put behind the bigger priority of building reasonable algorithms that work reasonably well on models reasonably resembling the real problem scenario of interest.
 
-```current_value``` is the initial guess of the value function in the entire domain. this is an array of scalars (1 scalar per state in the gridworld) corresponding to our current estimate, which we iterate on: computing the value function is the ultimate purpose of policy evaluation.
-
 ## ```is_accessible(current_state, successor_state)```
+
+**NOTE**: As of 23/01/2023, not adapted to 3D, but not used anywhere else either.
 
 Given a starting and potential final state of interest, returns whether ```successor_state``` is 'within reach' of ```current_state```. "Within reach" encompassess all states within 1 grid cell of ```current_state```, and no more — thus if ```current_state == successor_state```, the function returns ```False```.
 
@@ -24,9 +26,13 @@ As of 19/01/2023, it's important to note that the function is designed in a way 
 
 ## ```accessible_states(current_state, MDP)```
 
-Returns m x n matrix, where m is the number of accessible states and n is the dimension of the MDP grid world.
+**NOTE**: As of 23/01/2023, not adapted to 3D.
+
+Returns an m x n matrix, where m is the number of accessible states and n is the dimension of the MDP grid world.
 
 ## ```greedy_policy_array(value_function, MDP)```
+
+**NOTE**: As of 23/01/2023, not adapted to 3D.
 
 Returns an array with the size equal to the MDP's grid world environment, where entries give the greedy policy with respect to the input value function. That is, each scalar entry corresponds to an action which the agent should take aiming to end up at the state accessible to it with the highest value.
 
@@ -34,19 +40,27 @@ Crucial for policy and value iteration.
 
 ## ```array_to_policy(policy_array, MDP)```
 
+**NOTE**: As of 23/01/2023, not adapted to 3D.
+
 Takes array of (as of 19/01/2023, deterministic) greedy actions as output by ```greedy_policy_array``` and returns an actual function ```policy(action, state)``` in its most general format, to be used as before in the developed algorithms.
 
 ## ```value_to_greedy_policy()```
 
+**NOTE**: As of 23/01/2023, not adapted to 3D.
+
 Returns greedy policy (function of action, state) given a value function. Basically just a chaining together of ```greedy_policy_array```and ```array_to_policy```.
 
 ## ```policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_iterations=10)```
+
+**NOTE**: As of 23/01/2023, not adapted to 3D.
 
 Returns array representation of policy that comes out of policy iteration algorithm.
 
 The policy iteration algorithm first evaluates the current policy via value evaluation (itself an iterative algorithm which runs up to a maximum of ```evaluation_max_iterations```), defines a new and improved greedy policy, and repeates the whole process up to ```improvement_max_iterations``` times. Outer (improvement) loop breaks if the new greedy policy array representation is equal to the current one, meaning the policy has stabilised and is, therefore, optimal (see Sutton, Barto 2nd, 4.3).
 
 ## ```value_iteration(policy, MDP, max_iterations)```
+
+**NOTE**: As of 23/01/2023, not adapted to 3D.
 
 Returns array representation of policy that comes out of value iteration algorithm.
 
