@@ -146,16 +146,22 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=1):
 
         # in 2D, we indexed the value function data structure by the raw state (then a 2D vector).
         # In 3D we have to switch to indexing by a single number, because the value is stored in a column vector.
-        for state in MDP.state_space:
-            old_state_value = current_value[tuple(state.astype(int))]
+        for state_no in range(len(MDP.state_space)):
+            state = MDP.state_space[state_no] # the state itself (3-element row vector)
+            old_state_value = current_value[state_no]
             current_value_update = 0
             for action in MDP.action_space:
                 sub_sum = 0
-                for successor_state in MDP.state_space:
-                    sub_sum += MDP.environment_dynamics(successor_state, state, action) * (MDP.reward(successor_state) + MDP.discount_factor * current_value[tuple(successor_state.astype(int))])
+
+                # this is where we might want to start to change and cut down on the number of iterations,
+                # since most iterations serve little purpose (testing the probability of going from one corner of the grid to the other, for instance,
+                # is obviously disallowed by our particular problem)
+                for successor_no in range(len(MDP.state_space)):
+                    successor_state = MDP.state_space[successor_no] # the successor itself (3-element row vector)
+                    sub_sum += MDP.environment_dynamics(successor_state, state, action) * (MDP.reward(successor_state) + MDP.discount_factor * current_value[successor_no])
                 current_value_update += policy(action,state) * sub_sum
-            current_value[tuple(state.astype(int))] = current_value_update
-            change[tuple(state.astype(int))] = abs(current_value[tuple(state.astype(int))] - old_state_value)
+            current_value[state_no] = current_value_update
+            change[state_no] = abs(current_value[state_no] - old_state_value)
         delta = change.max()
         #print('Absolute changes to value function estimate:')
         #print(change)
