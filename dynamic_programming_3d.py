@@ -217,7 +217,11 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=5):
                 # since most iterations serve little purpose (testing the probability of going from one corner of the grid to the other, for instance,
                 # is obviously disallowed by our particular problem)
                 for successor in MDP.state_space:
-                    sub_sum += MDP.environment_dynamics(successor, state, action) * (MDP.reward(successor) + MDP.discount_factor * current_value[tuple(successor)])
+                    # CRUCIAL NOTE
+                    # in the below line, I changed (as of 25/01/2023) what was MDP.reward(successor) to MDP.reward(state)
+                    # this made the algorithms work towards optimal policies for the problem as of 25/01/2023, but change back if needed.
+                    # SEE for-meeting14.md in UoB repo FOR DETAILS
+                    sub_sum += MDP.environment_dynamics(successor, state, action) * (MDP.reward(state) + MDP.discount_factor * current_value[tuple(successor)])
                 current_value_update += policy(action,state) * sub_sum
             current_value[tuple(state)] = current_value_update
             change[tuple(state)] = abs(current_value[tuple(state)] - old_state_value)
@@ -327,12 +331,12 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
         print(f'Iteration number: {iteration_count}')
         print(f'Terminal state: {MDP.terminal_state}')
         print('Current greedy policy array (disregard in iteration no. 1):')
-        print(current_policy_array[:MDP.max_altitude + 1])
+        print(current_policy_array)
         print()
 
         initial_value = policy_evaluation(current_policy, MDP, initial_value, epsilon=0, max_iterations=evaluation_max_iterations)
         print('Previous policy evaluation:')
-        print(initial_value[:MDP.max_altitude + 1])
+        print(initial_value)
         new_policy_array = greedy_policy_array(initial_value, MDP)
         
         if np.array_equal(new_policy_array, current_policy_array):
