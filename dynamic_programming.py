@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 # even though not being used at the moment, for generality we're defining the policy as being a function of an action and a current state
-def test_policy(action, state):
+def random_walk(action, state):
     return 0.25
 
 # this class codifies all the dynamics of the problem: a simple gridworld, with the target in the lower-right corner.
@@ -18,7 +18,8 @@ class MarkovGridWorld():
         self.grid_size = grid_size # keep this unchanged, things are mostly hardcoded at the moment
         self.action_space = (0,1,2,3)
         self.discount_factor = discount_factor
-        self.terminal_state = np.array([np.floor(grid_size / 2), np.floor(grid_size / 2)]) # terminal state
+        self.terminal_state = np.array([np.floor(grid_size / 2), np.floor(grid_size / 2)]) # terminal state in centre of grid
+        #self.terminal_state = np.array([self.grid_size-1, self.grid_size-1])
         self.action_to_direction = {
             0: np.array([1, 0]), # down
             1: np.array([0, 1]), # right
@@ -236,13 +237,13 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
 def value_iteration(policy, MDP, max_iterations):
     return policy_iteration(policy, MDP, evaluation_max_iterations=1, improvement_max_iterations=max_iterations)
 
-def run_policy_evaluation():
+def run_policy_evaluation(use_policy):
     os.system('clear')
     default = input('Run policy evaluation with default parameters? (y/n) ')
     if default.split()[0][0].upper() == 'Y':
-        grid_size = 3
+        grid_size = 5
         direction_probability = 1
-        max_iterations = 20
+        max_iterations = 15
         epsilon = 0
     else:
         grid_size = int(input('Input grid size: '))
@@ -251,43 +252,57 @@ def run_policy_evaluation():
         epsilon = float(input('Input epsilon for convergence: '))
 
     GridWorld = MarkovGridWorld(grid_size=grid_size, direction_probability=direction_probability)
+    #print('-----------------------------------------------------------------------------')
+    #print('Running policy evaluation.')
+    #print(f'Grid size: {GridWorld.grid_size}')
+    #print(f'Terminal state: {GridWorld.terminal_state}')
+    #print(f'Discount factor: {GridWorld.discount_factor}')
+    #print(f'Probability of action resulting in intended direction of motion: {GridWorld.direction_probability}')
+    #print(f'Epsilon: {epsilon}')
+    #print(f'Max iterations: {max_iterations}')
+    #print(f'Policy: {use_policy}')
+    #print('-----------------------------------------------------------------------------')
+    input('Press Enter to continue...')
+    #print()
+    value = policy_evaluation(policy = use_policy, MDP = GridWorld, initial_value = None, epsilon = epsilon, max_iterations=max_iterations)
+    greedy_policy_scalars = greedy_policy_array(value, GridWorld)
+    greedy_policy = array_to_policy(greedy_policy_scalars, GridWorld)
+    #print('-----------------------------------------------------------------------------')
+    #print()
+    #print()
+    #print()
+    #print()
+    #print('Final value estimation:')
+    #print(value)
+    #print()
+    #print('Greedy policy array representation:')
+    #print(greedy_policy_scalars)
+
+def run_value_iteration(policy=random_walk, grid_size=11, max_iterations=100):
+    os.system('clear')
+    MDP = MarkovGridWorld(grid_size=grid_size)
+
     print('-----------------------------------------------------------------------------')
-    print('Running policy evaluation.')
-    print(f'Grid size: {GridWorld.grid_size}')
-    print(f'Terminal state: {GridWorld.terminal_state}')
-    print(f'Discount factor: {GridWorld.discount_factor}')
-    print(f'Probability of action resulting in intended direction of motion: {GridWorld.direction_probability}')
-    print(f'Epsilon: {epsilon}')
+    print('Running value iteration.')
+    print(f'Grid size: {MDP.grid_size}')
+    print(f'Terminal state: {MDP.terminal_state}')
+    print(f'Discount factor: {MDP.discount_factor}')
+    print(f'Probability of action resulting in intended direction of motion: {MDP.direction_probability}')
     print(f'Max iterations: {max_iterations}')
+    print(f'Policy: {policy}')
     print('-----------------------------------------------------------------------------')
     input('Press Enter to continue...')
     print()
-    value = policy_evaluation(policy = test_policy, MDP = GridWorld, initial_value = None, epsilon = epsilon, max_iterations=max_iterations)
-    greedy_policy_scalars = greedy_policy_array(value, GridWorld)
-    greedy_policy = array_to_policy(greedy_policy_scalars, GridWorld)
-    print('-----------------------------------------------------------------------------')
-    print()
-    print()
-    print()
-    print()
-    print('Final value estimation:')
-    print(value)
-    print()
-    print('Greedy policy array representation with respect to final value function estimate:')
-    print(greedy_policy_scalars)
 
-def run_value_iteration(policy=test_policy, grid_size=9, max_iterations=100):
-    os.system('clear')
-    MDP = MarkovGridWorld(grid_size=grid_size)
     st = time.time()
     value_iteration(policy, MDP, max_iterations=max_iterations)
     et = time.time()
     elapsed_time = et - st
     print(f'Elapsed time: {elapsed_time} seconds')
 
-if __name__ == "__main__":
+def run_profiler(function):
     import cProfile
-    cProfile.run('run_value_iteration()', 'output.dat')
+    cProfile.run(function, 'output.dat') # function is given as a string (e.g., 'policy_evaluation()')
 
     import pstats
     from pstats import SortKey
@@ -299,3 +314,6 @@ if __name__ == "__main__":
     with open("output_calls.txt", "w") as f:
         p = pstats.Stats("output.dat", stream=f)
         p.sort_stats("calls").print_stats()
+
+if __name__ == "__main__":
+    run_value_iteration(policy=random_walk)
