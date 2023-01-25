@@ -94,6 +94,7 @@ The 3D action space is a 5-element tuple (0,1,2,3,4). As before, in each horizon
 - 1 —> right.
 - 2 —> up.
 - 3 —> left.
+- 4 —> **land**.
 
 The 3D environment brings a new action numbered 4. This is the ***landing*** action. The agent can take this action from any state with altitude > 0. Taking the landing action from state [altitude, x, y] leads the agent to state [altitude + MDP.max_altitude, x, y]. The existence of these states with altitude above MDP.max_altitude serves the purpose of maintaining the reward signal as a function of state alone. In order to keep that structure we require a state that informs the algorithms that the agent has just landed at some point from a given altitude. Then, the reward signal is awarded based on the altitude from which the agent landed (landing from altitude 1 is the ideal case, the higher up the worse the reward should be), and in future the proximity to the prescribed landing zone might be taken into account too (as of 23/01/2023, only landing in the exact prescribed spot yields any reward).
 
