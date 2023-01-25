@@ -97,30 +97,26 @@ The 3D action space is a 5-element tuple (0,1,2,3,4). As before, in each horizon
 - 4 —> left.
 - 5 —> **land**.
 
-The 3D environment brings a new action numbered 4. This is the ***landing*** action. The agent can take this action from any state with altitude > 0. Taking the landing action from state [altitude, x, y] leads the agent to state [altitude + MDP.max_altitude, x, y]. The existence of these states with altitude above MDP.max_altitude serves the purpose of maintaining the reward signal as a function of state alone. In order to keep that structure we require a state that informs the algorithms that the agent has just landed at some point from a given altitude. Then, the reward signal is awarded based on the altitude from which the agent landed (landing from altitude 1 is the ideal case, the higher up the worse the reward should be), and in future the proximity to the prescribed landing zone might be taken into account too (as of 23/01/2023, only landing in the exact prescribed spot yields any reward).
+The 3D environment brings a new action numbered 4 (as well as 0 for staying put, but that could've been done in 2D as well). This is the ***landing*** action. The agent can take this action from any state with 0 < altitude < ```MDP.max_altitude```. Taking the landing action from state [altitude, x, y] leads the agent to state [altitude + ```MDP.max_altitude```, x, y]. The existence of these states with altitude above ```MDP.max_altitude``` serves the purpose of maintaining the reward signal as a function of state alone. In order to keep that structure we require a state that informs the algorithms that the agent has just landed at some point **from a known altitude**. Then, the reward signal is awarded based on the altitude from which the agent landed (landing from altitude 1 is the ideal case, the higher up the worse the reward should be), and in future the proximity to the prescribed landing zone might be taken into account too (as of 25/01/2023, only landing in the exact prescribed spot yields any reward).
 
-Before, the 'landing performed' state signal came from having negative altitudes. This, however, disallowed us from directly indexing the value function using the state (negative indices would make it all a mess). Thus the change to positive altitudes above the MDP-set ceiling, which still contains all the necessary information — easy to discern, and uniquely identifying the altitude when the landing manoeuvre was performed (via the modulo operator).
+Before 23/01/2023, the 'landing performed' state signal came from having negative altitudes. This, however, disallowed us from directly indexing the value function using the state (negative indices would make it all a mess). Thus the change to positive altitudes above the MDP-set ceiling, which still contains all the necessary information — easy to discern, and uniquely identifying the altitude when the landing manoeuvre was performed (via the modulo operator).
 
 ### Methods
 
 #### ```MDP.direction_to_action(self,direction)```
 
-Returns a 2-element array corresponding to an action given in terms of a scalar representation in 2D grid world.
+Returns a 2-element array corresponding to an action in the horizontal plane given in terms of a scalar representation in 2D grid world.
 
 #### ```MDP.reward(self, state)```
 
-Returns reward signal as a function of just the state. As of 23/01/2023, reward of any state except for a state landed (altitude < 0)at prescribed landing zone (```MDP.terminal_state```) is 0. If the agent has landed at the location of a prescribed landing zone, the reward is higher the closer the agent was to the ground upon performing the landing manoeuvre. Thus the maximum reward is given to the state ```[MDP.terminal_state, -1]```.
+Returns reward signal as a function of just the state. As of 23/01/2023, reward of any state **except for** a landed state (altitude > ```MDP.max_altitude```) at prescribed landing zone (```MDP.landing_zone```) is 0. If the agent has landed at the location of a prescribed landing zone, the reward is higher the closer the agent was to the ground upon performing the landing manoeuvre. Thus the maximum reward is given to the state ```[MDP.max_altitude + 1, MDP.landing_zone]```.
 
 #### ```MDP.environment_dynamics(self, successor_state, current_state, action)```
 
 Returns the probability of the agent going from ```current_state``` to ```successor_state```, given ```action```.
-One of the most vital methods of the MarkovGridWorld() class for dynamic programming.
 
-This is one of the most important functions for carrying out dynamic programming algorithms (policy evaluation at the core of it) because it is kept in its most general and omniscient form: returning probabilities for successor states from current states given an action.
-This is in stark contrast to ```MDP.state_transition```, which is not in this general form. That method instead just samples the dynamics of the MDP, thus returning a sampled successor state as a function of just the current state and an action. Thus, this will be useful for running simulations or for Monte Carlo methods, but ***not*** for dynamic programming methods.
+This is one of the most important functions for carrying out dynamic programming algorithms (policy evaluation at the core of it) because it is kept in its most general and "omniscient" form: returning probabilities for successor states from current states given an action.
 
 #### ```MDP.state_transition(self, state, action)```
 
-Returns a successor state as a function of ```state``` and ```action```, by sampling of the environment's generally stochastic dynamics.
-
-**NOTE**: This is (as of 23/01/2023) not yet adapted for 3D environment use. This is because it is not used in dynamic programming algorithms (```MDP.environment_dynamics``` is the method used for that), which is where the focus is for now. Will need to adapt this method if running individual episodes/simulations or resorting to Monte Carlo methods, which are based on averaging sampled agent experiences.
+***Samples*** the dynamics of the MDP, returning a **sampled successor state** as a function of the current state and an action. Thus, this will be useful for running simulations or for Monte Carlo methods, but ***not*** for dynamic programming methods.
