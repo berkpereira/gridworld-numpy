@@ -147,7 +147,7 @@ class MarkovGridWorld():
         
         # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
-        # and 10% probability for each of the other directions 
+        # and 5% probability for each of the other directions 
         stochastics = np.ones(5) * self.prob_other_directions
         stochastics[action] = self.direction_probability
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
@@ -166,23 +166,31 @@ class MarkovGridWorld():
         return successor_probability
 
     # this is where the dynamics are actually sampled.
+    # returns a sample of the successor state given a current state and an action, as well as the reward from the successor
     # it's NOT used in the dynamic programming algorithms because those require the actual probability distributions of state transitions as functions of actions.
     # will be used if we move onto Monte Carlo methods or to just run individual episodes of the environment/agent/policy.
     def state_transition(self, state, action):
-        # the stochastics array describes the probability, given an action from (0,1,2,3), of the result corresponding to what we'd expect from each of those actions
-        # if action == 1, for example, if stochastics == array[0.1,0.7,0.1,0.1], then the resulting successor state will be what we would expect of action == 1 with 70% probability,
-        # and 10% probability for each of the other directions 
-        #prob_other_directions = (1 - self.direction_probability) / 3
-        stochastics = np.ones(4) * self.prob_other_directions
-        stochastics[action] = self.direction_probability
-        effective_action = self.rng.choice(4, p=stochastics) # this is the effective action, after sampling from the given-action-biased distribution. Most times this will be equal to action
-        effective_direction = self.action_to_direction[effective_action]
-        new_state = np.clip(
-            state + effective_direction, 0, self.grid_size - 1
-        )
-        # override the above if we were actually in the terminal state!
-        if np.array_equal(state, self.terminal_state):
+        if state[0] == 0 or state[0] > self.max_altitude: # crashed, terminal, or landed
             new_state = self.terminal_state
+            return new_state, self.reward(new_state)
+        
+        # consider landing action.
+        # only changes altitude state dimension.
+        if action == 5:
+            new_state = np.array([state[0] + self.max_altitude, state[1], state[2]], dtype='int32')
+            return new_state, self.reward(new_state)
+
+        # we're left with the case in flight, with actions being one of (0,1,2,3,4)
+        # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
+        # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
+        # and 5% probability for each of the other directions.
+        stochastics = np.ones(5) * self.prob_other_directions
+        stochastics[action] = self.direction_probability
+        effective_action = self.rng.choice(5, p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+        effective_direction = self.action_to_direction[effective_action]
+        new_state_2d = np.clip(state[1:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+        new_state = np.concatenate((np.array([state[0] - 1]), new_state_2d))
+        
         return new_state, self.reward(new_state)
 
 # epsilon = the threshold delta must go below in order for us to stop
@@ -331,7 +339,7 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
         print(f'Iteration number: {iteration_count}')
         print(f'Terminal state: {MDP.terminal_state}')
         print('Current greedy policy array (disregard in iteration no. 1):')
-        print(current_policy_array)
+        print(current_policy_array[:MDP.max_altitude + 1])
         print()
 
         initial_value = policy_evaluation(current_policy, MDP, initial_value, epsilon=0, max_iterations=evaluation_max_iterations)
@@ -398,9 +406,24 @@ def run_policy_evaluation(use_policy):
     #print('Greedy policy array representation with respect to final value function estimate:')
     #print(greedy_policy_scalars)
 
-def run_value_iteration(policy=random_walk, grid_size=3, max_iterations=10):
+def run_value_iteration(policy, grid_size=3, max_iterations=10):
     os.system('clear')
     MDP = MarkovGridWorld(grid_size=grid_size)
+
+    print('-----------------------------------------------------------------------------')
+    print('Running value iteration.')
+    print(f'Grid size: {MDP.grid_size}')
+    print(f'Max altitude: {MDP.max_altitude}')
+    print(f'Terminal state: {MDP.terminal_state}')
+    print(f'Discount factor: {MDP.discount_factor}')
+    print(f'Probability of action resulting in intended direction of motion: {MDP.direction_probability}')
+    print(f'Max iterations: {max_iterations}')
+    print(f'Policy: {policy}')
+    print('-----------------------------------------------------------------------------')
+    input('Press Enter to continue...')
+    print()
+
+
     st = time.time()
     value_iteration(policy, MDP, max_iterations=max_iterations)
     et = time.time()
@@ -425,4 +448,4 @@ def run_profiler(function):
 if __name__ == "__main__":
     os.system('clear')
     mdp = MarkovGridWorld()
-    run_value_iteration()
+    run_value_iteration(random_walk)
