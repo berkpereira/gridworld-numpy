@@ -1,5 +1,3 @@
-# This piece of documentation, as of 23/01/2023, just mirrors that of the 2D dynamic programming documentation. This is not quite right for most functions/methods, so needs adaptation over to the 3D case, which is still in early development. Only some of the MDP methods' documentations have been crucially adapted.
-
 # Functions
 
 ## ```test_policy(action, state)```
