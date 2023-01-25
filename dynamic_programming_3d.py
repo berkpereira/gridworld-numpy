@@ -6,7 +6,7 @@ import numpy as np
 
 # for generality we're defining the policy as being a function of an action and a current state
 def random_walk(action, state):
-    return 0.2
+    return 1/6
 
 # just lands!
 def land_policy(action, state):
@@ -20,15 +20,31 @@ def land_policy(action, state):
 # but it's okay because just for purposes of testing 3D policy evaluation
 def up_land_policy(action, state):
     if np.array_equal(state[1:], np.array([0,0])):
-        if action == 4:
+        if action == 5: # land
             return 1
         else:
             return 0
     else:
-        if action == 2: # = up
+        if action == 3: # = up
             return 1
         else:
             return 0
+
+# lands if on landing zone and at altitude 1 (ideal conditions).
+# in any other situation, just stays put!
+def stay_land_policy(action, state):
+    if np.array_equal(state[1:], np.array([0,0])) and state[0] == 1:
+        if action == 5:
+            return 1
+        else:
+            return 0
+    else:
+        if action == 0: # stay put if conditions not perfect!
+            return 1
+        else:
+            return 0
+
+
 
 # this class codifies all the dynamics of the problem: a simple gridworld
 # as a starter in implementing GridWorld stochastics, I will try to program simple stochastics into this gridworld's dynamics
@@ -49,22 +65,23 @@ class MarkovGridWorld():
         else:
             self.max_altitude = max_altitude
         
-        # action 4 corresponds to landing manoeuvre
-        self.action_space = (0, 1, 2, 3, 4)
+        # action 5 corresponds to landing manoeuvre
+        self.action_space = (0, 1, 2, 3, 4, 5)
         self.discount_factor = discount_factor
         
         # terminal state is assigned directly to a crash or right after landing manoeuvre reward has been collected, subsequent rewards are always 0 
         # just a reserved state for representation of episode termination in dynamic programming algorithms
         self.terminal_state = np.array([0, 0, 0], dtype='int32')
         self.action_to_direction = {
-            0: np.array([1, 0], dtype='int32'), # down
-            1: np.array([0, 1], dtype='int32'), # right
-            2: np.array([-1, 0], dtype='int32'), # up
-            3: np.array([0, -1], dtype='int32'), # left
+            0: np.array([0, 0], dtype='int32'), # stay
+            1: np.array([1, 0], dtype='int32'), # down
+            2: np.array([0, 1], dtype='int32'), # right
+            3: np.array([-1, 0], dtype='int32'), # up
+            4: np.array([0, -1], dtype='int32'), # left
         }
         self.rng = np.random.default_rng() # construct a default numpy random number Generator class instance, to use in stochastics
         self.direction_probability = direction_probability
-        self.prob_other_directions = (1 - self.direction_probability) / 3
+        self.prob_other_directions = (1 - self.direction_probability) / 4 # now divide by 4 because of addition of another 'direction' --> staying put
         # for ease of iterating over all states, define a 2 x (grid_size**2) matrix below
         self.state_space = np.zeros(shape=(self.grid_size**2 * (self.max_altitude * 2) + 1,3), dtype='int32')
         state_counter = 1 # start counting at 1 because state indexed by 0 is self.terminal_state, all zeros, already as defined
@@ -79,7 +96,7 @@ class MarkovGridWorld():
                     state_counter += 1
 
     def direction_to_action(self, direction):
-        for action in range(4):
+        for action in range(5):
             if np.array_equal(direction, self.action_to_direction[action]):
                 return action
 
@@ -108,7 +125,7 @@ class MarkovGridWorld():
 
         # then, consider the landing action:
         # successor_state is guaranteed to be same as current_state, but with a negative altitude.
-        if action == 4:
+        if action == 5:
             if np.array_equal(successor_state, np.array([current_state[0] + self.max_altitude, current_state[1], current_state[2]], dtype='int32')):
                 # landing must be succeeded by the same state but with altitude offset by self.max_altitude, which signifies landed state and
                 # which collects meaningful reward.
@@ -119,17 +136,17 @@ class MarkovGridWorld():
         # FINALLY, consider the case most similar to what we had the most in the 2D environment, where we're considering movement in
         # horizontal planes. However, have to adapt from the 2D case because we must consider the motion of the agent downwards at each time step.
         
-        # the stochastics array describes the probability, given an action from (0,1,2,3), of the result corresponding to what we'd expect from each of those actions
-        # if action == 1, for example, if stochastics == array[0.1,0.7,0.1,0.1], then the resulting successor state will be what we would expect of action == 1 with 70% probability,
+        # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
+        # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
         # and 10% probability for each of the other directions 
-        stochastics = np.ones(4) * self.prob_other_directions
+        stochastics = np.ones(5) * self.prob_other_directions
         stochastics[action] = self.direction_probability
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
         
         successor_probability = 0 # initialise probability of successor, might in the end be sum of various components of stochastics vector due to environment boundaries.
-        for direction_number in range(4):
-            direction = self.action_to_direction[direction_number] # iterate over the four 2-element direction vectors
+        for direction_number in range(5):
+            direction = self.action_to_direction[direction_number] # iterate over the five 2-element direction vectors
             # if the direction would lead us from current_state to successor_state, add to the output the probability
             # that the action given would lead us to that direction.
             potential_successor = np.zeros(3, dtype='int32') # initialise
@@ -215,31 +232,48 @@ def is_accessible(current_state, successor_state):
         return False
 
 # this function returns all states that are accessible from the current_state of the agent
-# since this is intended for generating greedy policies and other useful stuff, we'll rule out the agent's own state, even when that is accessible (e.g., by trying to move outside of the domain boundaries)
+# since this is intended for generating greedy policies and other useful stuff, we'll rule out the agent's own state, even when that is accessible (e.g., by trying to move outside of the domain boundaries).
+# as it stands, this function is expensive because it keeps stacking rows -- appending, which requires copying array each time!
 def accessible_states(current_state, MDP):
-    output = np.array([])
+    
+    # first we consider the special cases:
+    # agent has landed or
+    # agent has crashed.
+    # in these cases, the only accessible state from there is the MDP's terminal state.
+    if current_state[0] == 0 or current_state[0] > MDP.max_altitude:
+        return MDP.terminal_state
+
+    # now onto all other cases, where drone is still flying.
+    # initialise output to be zeros of shape (len(MDP.action_space),3).
+    # 3 columns because 3D state vector.
+    # NUMBER OF ROWS determined by the number of actions available to the agent.
+    # for instance, with 6 actions (put, down, right, up, left, land), there are, from any given state, AT MOST 6 different states the agent can come to occupy.
+    # thus, the output of this function might contain duplicate states, e.g., if current_state is at a boundary of the grid.
+    # but that's okay for the purposes of the function.
+    # importantly, there might also be unfilled
     action_space_size = len(MDP.action_space)
-    for action in range(action_space_size):
+    output = np.zeros(shape=(action_space_size, 3), dtype='int32')
+    
+    for action in range(action_space_size - 1): # THIS MINUS ONE DISCARDS THE LANDING ACTION
         direction = MDP.action_to_direction[action]
-        potential_accessible = np.clip(current_state + direction, 0, MDP.grid_size - 1) 
-        if not np.array_equal(potential_accessible, current_state):
-            if output.size == 0:
-                output = np.array([potential_accessible])
-            else:
-                output = np.row_stack((output, potential_accessible))
+        potential_accessible = np.clip(current_state[1:] + direction, 0, MDP.grid_size - 1)
+        output[action] = np.concatenate((np.array([current_state[0] - 1]), potential_accessible))
+    
+    # now consider also result of landing action
+    output[action_space_size - 1] = np.concatenate((np.array([current_state[0] + MDP.max_altitude]), current_state[1:]))
     return output
 
-# at the moment, this actually returns a 2D array with integers codifying greedy actions in it, with respect to an input value function
-# from this, still need to construct a policy as a function policy(action, state), which returns a probability distribution over actions, given some current state
-# keep in mind that such a greedy policy will always be deterministic, so the probability distribution will be very boring, with 1 assigned to the greedy action and 0 elsewhere
-# however, this general structure is useful as it can be used directly in the generalised policy evaluation algorithm we've implemented, which assumes that form of a policy(action, satte)
+# this returns a 2D array with integers codifying greedy actions in it, with respect to an input value function.
+# from this, still need to construct a policy as a function policy(action, state), which returns a probability distribution over actions, given some current state.
+# keep in mind that such a greedy policy will always be deterministic, so the probability distribution will be very boring, with 1 assigned to the greedy action and 0 elsewhere.
+# however, this general structure is useful as it can be used directly in the generalised policy evaluation algorithm we've implemented, which assumes that form of a policy(action, state).
 def greedy_policy_array(value_function, MDP):
-    policy_array = np.empty(shape=(MDP.grid_size, MDP.grid_size), dtype='int32') # this array stores actions (0,1,2,3) which codify the greedy policy
+    policy_array = np.empty(shape=(MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size), dtype='int32') # this array stores actions (0,1,2,3) which codify the greedy policy
     for state in MDP.state_space:
         potential_next_states = accessible_states(state, MDP)
         max_next_value = np.NINF # initialise max value attainable as minus infinity
         for successor_state in potential_next_states:
-            potential_value = value_function[tuple(successor_state.astype(int))]
+            potential_value = value_function[tuple(successor_state)]
             if potential_value > max_next_value:
                 greedy_direction = successor_state - state
                 max_next_value = potential_value
@@ -377,4 +411,4 @@ def run_profiler(function):
         p.sort_stats("calls").print_stats()
 
 if __name__ == "__main__":
-    run_policy_evaluation(up_land_policy)
+    run_policy_evaluation(stay_land_policy)
