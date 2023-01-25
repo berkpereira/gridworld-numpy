@@ -24,13 +24,9 @@ As of 19/01/2023, it's important to note that the function is designed in a way 
 
 ## ```accessible_states(current_state, MDP)```
 
-**NOTE**: As of 23/01/2023, not adapted to 3D.
-
 Returns an m x n matrix, where m is the number of accessible states and n is the dimension of the MDP grid world.
 
 ## ```greedy_policy_array(value_function, MDP)```
-
-**NOTE**: As of 23/01/2023, not adapted to 3D.
 
 Returns an array with the size equal to the MDP's grid world environment, where entries give the greedy policy with respect to the input value function. That is, each scalar entry corresponds to an action which the agent should take aiming to end up at the state accessible to it with the highest value.
 
@@ -38,27 +34,19 @@ Crucial for policy and value iteration.
 
 ## ```array_to_policy(policy_array, MDP)```
 
-**NOTE**: As of 23/01/2023, not adapted to 3D.
-
 Takes array of (as of 19/01/2023, deterministic) greedy actions as output by ```greedy_policy_array``` and returns an actual function ```policy(action, state)``` in its most general format, to be used as before in the developed algorithms.
 
 ## ```value_to_greedy_policy()```
 
-**NOTE**: As of 23/01/2023, not adapted to 3D.
-
 Returns greedy policy (function of action, state) given a value function. Basically just a chaining together of ```greedy_policy_array```and ```array_to_policy```.
 
 ## ```policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_iterations=10)```
-
-**NOTE**: As of 23/01/2023, not adapted to 3D.
 
 Returns array representation of policy that comes out of policy iteration algorithm.
 
 The policy iteration algorithm first evaluates the current policy via value evaluation (itself an iterative algorithm which runs up to a maximum of ```evaluation_max_iterations```), defines a new and improved greedy policy, and repeates the whole process up to ```improvement_max_iterations``` times. Outer (improvement) loop breaks if the new greedy policy array representation is equal to the current one, meaning the policy has stabilised and is, therefore, optimal (see Sutton, Barto 2nd, 4.3).
 
 ## ```value_iteration(policy, MDP, max_iterations)```
-
-**NOTE**: As of 23/01/2023, not adapted to 3D.
 
 Returns array representation of policy that comes out of value iteration algorithm.
 
