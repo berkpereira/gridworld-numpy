@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 # for generality we're defining the policy as being a function of an action and a current state
-def test_policy(action, state):
+def random_walk(action, state):
     return 0.2
 
 # just lands!
@@ -352,7 +352,7 @@ def run_policy_evaluation(use_policy):
     #print('Greedy policy array representation with respect to final value function estimate:')
     #print(greedy_policy_scalars)
 
-def run_value_iteration(policy=test_policy, grid_size=9, max_iterations=100):
+def run_value_iteration(policy=random_walk, grid_size=9, max_iterations=100):
     os.system('clear')
     MDP = MarkovGridWorld(grid_size=grid_size)
     st = time.time()
