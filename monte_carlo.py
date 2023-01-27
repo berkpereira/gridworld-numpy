@@ -56,7 +56,7 @@ def sample_policy(MDP, policy, state):
     return sampled_action
 
 def play_episode(MDP, history):
-    fig = plt.figure()
+    fig = plt.figure(figsize=(9,7))
     ax = fig.add_subplot(projection="3d")
     ax.set_aspect('equal')
     ax.grid()
@@ -85,7 +85,7 @@ def play_episode(MDP, history):
     plt.show()
 
 if __name__ == '__main__':
-    MDP = MarkovGridWorld()
+    MDP = MarkovGridWorld(grid_size = 7, max_altitude=10)
     policy = random_walk
     for i in range(3):
         history = generate_episode(MDP, policy)
