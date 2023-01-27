@@ -74,7 +74,7 @@ The state space is a matrix composed of stacked 3-element np.arrays, each repres
 
 #### ```MDP.action_space```
 
-The 3D action space is a 5-element tuple (0,1,2,3,4). As before, in each horizontal plane we have 4 actions:
+The 3D action space is a 5-element tuple (0,1,2,3,4,5). As before, in each horizontal plane we have 4 actions:
 
 - 0 —> **stay put**.
 - 1 —> down.

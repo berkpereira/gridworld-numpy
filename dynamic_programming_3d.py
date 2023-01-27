@@ -85,9 +85,9 @@ class MarkovGridWorld():
         # for ease of iterating over all states, define a 2 x (grid_size**2) matrix below
         self.state_space = np.zeros(shape=(self.grid_size**2 * ((self.max_altitude * 2) + 1),3), dtype='int32')
         state_counter = 0 # start counting at 1 because state indexed by 0 is self.terminal_state, all zeros, already as defined
-        for row in range(self.grid_size):
-            for col in range(self.grid_size):
-                for altitude in range(2 * self.max_altitude + 1):
+        for altitude in range(2 * self.max_altitude, -1, -1):
+            for row in range(self.grid_size):
+                for col in range(self.grid_size):
                     # 0 < altitude <= self.max_altitude means in-flight
                     # altitude > self.max_altitude signifies landing manoeuvre has been pulled from an altitude of altitude % self.max_altitude:
                     # E.g., if self.max_altitude is 3 and a state has 3rd coordinate of 4, this signifies that agent has landed from an altitude of 1 (ideal landing).
@@ -148,13 +148,13 @@ class MarkovGridWorld():
         # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
         # and 5% probability for each of the other directions 
-        stochastics = np.ones(5) * self.prob_other_directions
+        stochastics = np.ones(len(self.action_space)) * self.prob_other_directions
         stochastics[action] = self.direction_probability
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
         
         successor_probability = 0 # initialise probability of successor, might in the end be sum of various components of stochastics vector due to environment boundaries.
-        for direction_number in range(5):
+        for direction_number in range(len(self.action_space)):
             direction = self.action_to_direction[direction_number] # iterate over the five 2-element direction vectors
             # if the direction would lead us from current_state to successor_state, add to the output the probability
             # that the action given would lead us to that direction.
@@ -165,33 +165,33 @@ class MarkovGridWorld():
                 successor_probability += stochastics[direction_number] 
         return successor_probability
 
-    # this is where the dynamics are actually sampled.
+    # this is where the dynamics are actually SAMPLED.
     # returns a sample of the successor state given a current state and an action, as well as the reward from the successor
     # it's NOT used in the dynamic programming algorithms because those require the actual probability distributions of state transitions as functions of actions.
     # will be used if we move onto Monte Carlo methods or to just run individual episodes of the environment/agent/policy.
     def state_transition(self, state, action):
         if state[0] == 0 or state[0] > self.max_altitude: # crashed, terminal, or landed
             new_state = self.terminal_state
-            return new_state, self.reward(new_state)
+            return new_state
         
         # consider landing action.
         # only changes altitude state dimension.
         if action == 5:
             new_state = np.array([state[0] + self.max_altitude, state[1], state[2]], dtype='int32')
-            return new_state, self.reward(new_state)
+            return new_state
 
         # we're left with the case in flight, with actions being one of (0,1,2,3,4)
         # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
         # and 5% probability for each of the other directions.
-        stochastics = np.ones(5) * self.prob_other_directions
+        stochastics = np.ones(len(self.action_space)) * self.prob_other_directions
         stochastics[action] = self.direction_probability
-        effective_action = self.rng.choice(5, p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+        effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
         effective_direction = self.action_to_direction[effective_action]
         new_state_2d = np.clip(state[1:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
         new_state = np.concatenate((np.array([state[0] - 1]), new_state_2d))
         
-        return new_state, self.reward(new_state)
+        return new_state
 
 # epsilon = the threshold delta must go below in order for us to stop
 # value function is held in a column vector of size equal to len(MDP.state_space)
