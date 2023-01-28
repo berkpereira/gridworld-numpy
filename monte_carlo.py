@@ -1,5 +1,6 @@
 from dynamic_programming_3d import *
 import numpy as np
+import os
 
 
 import matplotlib.pyplot as plt
@@ -56,7 +57,7 @@ def sample_policy(MDP, policy, state):
     return sampled_action
 
 def play_episode(MDP, history):
-    fig = plt.figure(figsize=(9,7))
+    fig = plt.figure(figsize=(12,9))
     ax = fig.add_subplot(projection="3d")
     ax.set_aspect('equal')
     ax.grid()
@@ -84,13 +85,33 @@ def play_episode(MDP, history):
     ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=500, repeat=False)
     plt.show()
 
-if __name__ == '__main__':
-    MDP = MarkovGridWorld(grid_size = 7, max_altitude=10)
-    policy = random_walk
-    for i in range(3):
+def simulate_policy(MDP, policy, no_episodes=5):
+    print(f'Generating episodes with policy {policy}')
+    input('Press Enter to continue...')
+    print()
+    for i in range(no_episodes):
         history = generate_episode(MDP, policy)
         print(f'Episode number {i}')
         print('Episode history:')
         print(history)
         print()
         play_episode(MDP, history)
+
+def run_random_then_optimal(MDP, policy, no_episodes=5):
+    os.system('clear')
+    simulate_policy(MDP, policy, no_episodes)
+    print()
+    print()
+    print()
+    print()
+    print('Now running value iteration to converge on optimal policy!')
+    input('Press Enter to continue...')
+    optimal_policy, optimal_policy_array = value_iteration(policy, MDP, 20)
+    simulate_policy(MDP, optimal_policy)
+
+
+
+if __name__ == '__main__':
+    MDP = MarkovGridWorld(grid_size = 3)
+    policy = random_walk
+    run_random_then_optimal(MDP, policy)
