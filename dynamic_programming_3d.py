@@ -154,7 +154,7 @@ class MarkovGridWorld():
         # these probabilities have been defined by the stochastics vector above
         
         successor_probability = 0 # initialise probability of successor, might in the end be sum of various components of stochastics vector due to environment boundaries.
-        for direction_number in range(len(self.action_space)):
+        for direction_number in range(5):
             direction = self.action_to_direction[direction_number] # iterate over the five 2-element direction vectors
             # if the direction would lead us from current_state to successor_state, add to the output the probability
             # that the action given would lead us to that direction.
@@ -358,7 +358,7 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
     print('Final policy array:')
     print(current_policy_array[:MDP.max_altitude + 1])
     print()
-    return current_policy_array
+    return current_policy, current_policy_array
 
 def value_iteration(policy, MDP, max_iterations):
     return policy_iteration(policy, MDP, evaluation_max_iterations=1, improvement_max_iterations=max_iterations)
@@ -425,7 +425,7 @@ def run_value_iteration(policy, grid_size=3, max_iterations=10):
 
 
     st = time.time()
-    value_iteration(policy, MDP, max_iterations=max_iterations)
+    optimal_policy, optimal_policy_array = value_iteration(policy, MDP, max_iterations=max_iterations)
     et = time.time()
     elapsed_time = et - st
     print(f'Elapsed time: {elapsed_time} seconds')
