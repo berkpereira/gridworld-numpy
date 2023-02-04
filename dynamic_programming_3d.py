@@ -1,5 +1,3 @@
-# here we implement policy iteration based on the simple gridworld run by explore.py
-# using OpenAI gyms for this would pose some challenges at first, but the problem is simple enough to just be put together using numpy arrays
 import os
 import time
 import numpy as np
@@ -59,6 +57,9 @@ class MarkovGridWorld():
 
         #self.landing_zone = np.array([self.grid_size - 1, self.grid_size - 1], dtype='int32') # wanting to land in bottom-right corner of grid
         self.landing_zone = np.array([0, 0], dtype='int32') # wanting to land in top-left corner of grid
+
+        # trying out obstacles
+        self.obstacles = np.array([[1,0], [1,1], [1,2]], ndmin=2, dtype='int32')
         
         # set default max_altitude to 2 times grid size.
         # this is the minimum altitude that allows agent to get from one corner to the other.
@@ -87,6 +88,7 @@ class MarkovGridWorld():
         # for ease of iterating over all states, define a 2 x (grid_size**2) matrix below
         self.state_space = np.zeros(shape=(self.grid_size**2 * ((self.max_altitude * 2) + 1),3), dtype='int32')
         state_counter = 0 # start counting at 1 because state indexed by 0 is self.terminal_state, all zeros, already as defined
+        
         for altitude in range(2 * self.max_altitude, -1, -1):
             for row in range(self.grid_size):
                 for col in range(self.grid_size):
@@ -108,9 +110,6 @@ class MarkovGridWorld():
         else: # only other possible case is difference[0] == 0 (terminal state transitions). doesn't really matter what the output is in this case.
             return 0
 
-
-        
-
     def reward(self, state):
         if np.array_equal(self.landing_zone, state[1:]): # agent is over landing zone
             if state[0] > self.max_altitude: # agent has landed
@@ -128,14 +127,28 @@ class MarkovGridWorld():
     def environment_dynamics(self, successor_state, current_state, action):
         # first, consider the case where agent has landed or crashed, or was already in terminal state before.
         # nowhere to go from terminal state except to the terminal state.
+
+        # Also consider obstacles:
+        # it's not very realistic nor practical to just get rid of an obstacle's grid from the state space.
+        # the best option is to treat it like another crashed state.
+        # this way, it's still there, and it's possible for a bad policy or for environment dynamics stochasticity to
+        # make the agent crash against it --> most realistic
         if current_state[0] > self.max_altitude or current_state[0] == 0: # agent has landed (> max_altitude), crashed (= 0), or has already been in the terminal state
             if np.array_equal(successor_state, self.terminal_state):
                 return 1 # can only be taken to terminal_state
             else:
                 return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
+        
+        # consider obstacle cases, similar to crashed cases.
+        for obstacle in self.obstacles:
+            if np.array_equal(current_state[1:], obstacle):
+                if np.array_equal(successor_state, self.terminal_state):
+                    return 1 # can only be taken to terminal_state
+                else:
+                    return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
 
         # then, consider the landing action:
-        # successor_state is guaranteed to be same as current_state, but with a negative altitude.
+        # successor_state is guaranteed to be same as current_state, but with a 'landed' altitude.
         if action == 5:
             if np.array_equal(successor_state, np.array([current_state[0] + self.max_altitude, current_state[1], current_state[2]], dtype='int32')):
                 # landing must be succeeded by the same state but with altitude offset by self.max_altitude, which signifies landed state and
@@ -150,7 +163,7 @@ class MarkovGridWorld():
         # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
         # and 5% probability for each of the other directions 
-        stochastics = np.ones(len(self.action_space)) * self.prob_other_directions
+        stochastics = np.ones(len(self.action_space) - 1) * self.prob_other_directions
         stochastics[action] = self.direction_probability
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
@@ -167,7 +180,7 @@ class MarkovGridWorld():
                 successor_probability += stochastics[direction_number] 
         return successor_probability
 
-    # this is where the dynamics are actually SAMPLED.
+    # this is where the dynamics are SAMPLED.
     # returns a sample of the successor state given a current state and an action, as well as the reward from the successor
     # it's NOT used in the dynamic programming algorithms because those require the actual probability distributions of state transitions as functions of actions.
     # will be used if we move onto Monte Carlo methods or to just run individual episodes of the environment/agent/policy.
@@ -175,6 +188,12 @@ class MarkovGridWorld():
         if state[0] == 0 or state[0] > self.max_altitude: # crashed, terminal, or landed
             new_state = self.terminal_state
             return new_state
+        
+        # consider obstacle cases, similar to crashed cases.
+        for obstacle in self.obstacles:
+            if np.array_equal(state[1:], obstacle):
+                new_state = self.terminal_state
+                return new_state
         
         # consider landing action.
         # only changes altitude state dimension.
@@ -186,9 +205,9 @@ class MarkovGridWorld():
         # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
         # and 5% probability for each of the other directions.
-        stochastics = np.ones(len(self.action_space)) * self.prob_other_directions
+        stochastics = np.ones(len(self.action_space) - 1) * self.prob_other_directions
         stochastics[action] = self.direction_probability
-        effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+        effective_action = self.rng.choice(len(self.action_space) - 1, p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
         effective_direction = self.action_to_direction[effective_action]
         new_state_2d = np.clip(state[1:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
         new_state = np.concatenate((np.array([state[0] - 1]), new_state_2d))
@@ -449,5 +468,5 @@ def run_profiler(function):
 
 if __name__ == "__main__":
     os.system('clear')
-    mdp = MarkovGridWorld(grid_size=20)
+    mdp = MarkovGridWorld(grid_size=3)
     run_value_iteration(random_walk, mdp)

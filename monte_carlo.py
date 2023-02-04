@@ -20,7 +20,19 @@ def generate_episode(MDP, policy):
     # now we pick a state with altitude = MDP.max_altitude, with equal probability of any state.
     # this is initialising the state that then gets taken forward via sampling of problem dynamics and policy
     first_state_max_alt = np.where(MDP.state_space[:,0] == MDP.max_altitude)[0][0]
-    current_state = MDP.state_space[np.random.choice(np.arange(first_state_max_alt, first_state_max_alt + MDP.grid_size**2))]
+    
+    # if we've accidentally picked an obstacle state to begin with, pick again until that's not the case.
+    picked_obstacle = True
+    while picked_obstacle is True:
+        current_state = MDP.state_space[np.random.choice(np.arange(first_state_max_alt, first_state_max_alt + MDP.grid_size**2))]
+        
+        picked_obstacle = False
+        for obstacle in MDP.obstacles:
+            if np.array_equal(current_state[1:], obstacle):
+                picked_obstacle = True
+                break
+                
+
     
     # initialise index which we will use to fill the rows of the history matrix
     time_level = 0
@@ -42,7 +54,7 @@ def generate_episode(MDP, policy):
 def truncate_terminal(MDP, history):
     for row in range(history.shape[0]):
         if np.array_equal(history[row][:3], MDP.terminal_state):
-            if np.array_equal(history[row - 1], np.array([1,0,0])):
+            if np.array_equal(history[row - 1][:3], np.array([1,0,0])):
                 return history[:row+1]
             else:
                 return history[:row]
@@ -61,6 +73,7 @@ def play_episode(MDP, history):
     ax = fig.add_subplot(projection="3d")
     ax.set_aspect('equal')
     ax.grid()
+    marker_size = 400
 
     def animate(i):
         if i == 0:
@@ -74,12 +87,25 @@ def play_episode(MDP, history):
             plt.xticks(np.arange(MDP.grid_size))
             plt.yticks(np.arange(MDP.grid_size))
             ax.set_zticks(np.arange(MDP.max_altitude + 1))
+            
+            # plot obstacle as a sort of building up to MDP.max_altitude.
+            # need to make this proper, just a crappy demo as it stands.
+            for obstacle in MDP.obstacles:
+                no_points = 50
+                x_obstacle = np.full((no_points, 1), obstacle[0])
+                y_obstacle = np.full((no_points, 1), obstacle[1])
+                z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
 
-        if history[i][0] > MDP.max_altitude:
-            return ax.scatter(history[i][1], history[i][2], 0, marker="h", c='green'),
+                ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="x", c='black', s=marker_size*2, alpha=0.3)
+
         if history[i][0] == 0:
-            return ax.scatter(history[i][1], history[i][2], 0, marker="x", c='red'),
-        return ax.scatter(history[i][1], history[i][2], history[i][0], marker="P", c='blue'),
+            return ax.scatter(history[i][1], history[i][2], 0, marker="x", c='red', s=marker_size, alpha=1),
+        for obstacle in MDP.obstacles:
+            if np.array_equal(history[i][1:3], obstacle):
+                return ax.scatter(history[i][1], history[i][2], history[i][0], marker="x", c='red', s=marker_size, alpha=1),
+        if history[i][0] > MDP.max_altitude:
+            return ax.scatter(history[i][1], history[i][2], 0, marker="h", c='green', s=marker_size, alpha=1),
+        return ax.scatter(history[i][1], history[i][2], history[i][0], marker="P", c='blue', s=marker_size, alpha=1),
 
 
     ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=500, repeat=False)
@@ -112,6 +138,5 @@ def run_random_then_optimal(MDP, policy, no_episodes):
 
 
 if __name__ == '__main__':
-    MDP = MarkovGridWorld(grid_size = 10)
-    policy = random_walk
-    run_random_then_optimal(MDP, policy, no_episodes=3)
+    MDP = MarkovGridWorld(grid_size = 5, direction_probability=1)
+    run_random_then_optimal(MDP, random_walk, no_episodes=5)
