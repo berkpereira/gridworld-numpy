@@ -60,8 +60,10 @@ class MarkovGridWorld():
         #self.landing_zone = np.array([self.grid_size - 1, self.grid_size - 1], dtype='int32') # wanting to land in bottom-right corner of grid
         self.landing_zone = np.array([0, 0], dtype='int32') # wanting to land in top-left corner of grid
         
+        # set default max_altitude to 2 times grid size.
+        # this is the minimum altitude that allows agent to get from one corner to the other.
         if max_altitude is None:
-            self.max_altitude = self.grid_size ** 2 # sensible ballpark figure if none else is given
+            self.max_altitude = self.grid_size * 2
         else:
             self.max_altitude = max_altitude
         
@@ -221,13 +223,8 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=5):
             for action in MDP.action_space:
                 sub_sum = 0
 
-                # this is where we might want to start to change and cut down on the number of iterations,
-                # since most iterations serve little purpose (testing the probability of going from one corner of the grid to the other, for instance,
-                # is obviously disallowed by our particular problem)
                 possible_successors = accessible_states(state, MDP)
                 for successor in possible_successors:
-                    
-                    
                     # CRUCIAL NOTE
                     # in the below line, I changed (as of 25/01/2023) what was MDP.reward(successor) to MDP.reward(state)
                     # this made the algorithms work towards optimal policies for the problem as of 25/01/2023, but change back if needed.
@@ -280,8 +277,11 @@ def accessible_states(current_state, MDP):
     
     for action in range(action_space_size - 1): # THIS MINUS ONE DISCARDS THE LANDING ACTION
         direction = MDP.action_to_direction[action]
-        potential_accessible = np.clip(current_state[1:] + direction, 0, MDP.grid_size - 1)
-        output[action] = np.concatenate((np.array([current_state[0] - 1]), potential_accessible))
+        potential_accessible = np.zeros(3, dtype='int32') # initialise
+
+        potential_accessible[1:] = np.clip(current_state[1:] + direction, 0, MDP.grid_size - 1)
+        potential_accessible[0] = current_state[0] - 1 # assign altitude as current's - 1
+        output[action] = potential_accessible
     
     # now consider also result of landing action
     output[action_space_size - 1] = np.concatenate((np.array([current_state[0] + MDP.max_altitude]), current_state[1:]))
@@ -409,9 +409,8 @@ def run_policy_evaluation(use_policy):
     #print('Greedy policy array representation with respect to final value function estimate:')
     #print(greedy_policy_scalars)
 
-def run_value_iteration(policy, grid_size=3, max_iterations=10):
+def run_value_iteration(policy, MDP, max_iterations=1000):
     os.system('clear')
-    MDP = MarkovGridWorld(grid_size=grid_size)
 
     print('-----------------------------------------------------------------------------')
     print('Running value iteration.')
@@ -450,5 +449,5 @@ def run_profiler(function):
 
 if __name__ == "__main__":
     os.system('clear')
-    mdp = MarkovGridWorld()
-    run_value_iteration(random_walk)
+    mdp = MarkovGridWorld(grid_size=20)
+    run_value_iteration(random_walk, mdp)
