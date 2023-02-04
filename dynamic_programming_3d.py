@@ -224,7 +224,10 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=5):
                 # this is where we might want to start to change and cut down on the number of iterations,
                 # since most iterations serve little purpose (testing the probability of going from one corner of the grid to the other, for instance,
                 # is obviously disallowed by our particular problem)
-                for successor in MDP.state_space:
+                possible_successors = accessible_states(state, MDP)
+                for successor in possible_successors:
+                    
+                    
                     # CRUCIAL NOTE
                     # in the below line, I changed (as of 25/01/2023) what was MDP.reward(successor) to MDP.reward(state)
                     # this made the algorithms work towards optimal policies for the problem as of 25/01/2023, but change back if needed.
