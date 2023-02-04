@@ -97,7 +97,7 @@ def simulate_policy(MDP, policy, no_episodes=5):
         print()
         play_episode(MDP, history)
 
-def run_random_then_optimal(MDP, policy, no_episodes=5):
+def run_random_then_optimal(MDP, policy, no_episodes=4):
     os.system('clear')
     simulate_policy(MDP, policy, no_episodes)
     print()
@@ -112,6 +112,6 @@ def run_random_then_optimal(MDP, policy, no_episodes=5):
 
 
 if __name__ == '__main__':
-    MDP = MarkovGridWorld(grid_size = 3)
+    MDP = MarkovGridWorld(grid_size = 5)
     policy = random_walk
     run_random_then_optimal(MDP, policy)
