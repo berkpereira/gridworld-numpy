@@ -92,12 +92,12 @@ def simulate_policy(MDP, policy, no_episodes=5):
     for i in range(no_episodes):
         history = generate_episode(MDP, policy)
         print(f'Episode number {i}')
-        print('Episode history:')
+        print('Episode history (state, then reward):')
         print(history)
         print()
         play_episode(MDP, history)
 
-def run_random_then_optimal(MDP, policy, no_episodes=4):
+def run_random_then_optimal(MDP, policy, no_episodes):
     os.system('clear')
     simulate_policy(MDP, policy, no_episodes)
     print()
@@ -107,11 +107,11 @@ def run_random_then_optimal(MDP, policy, no_episodes=4):
     print('Now running value iteration to converge on optimal policy!')
     input('Press Enter to continue...')
     optimal_policy, optimal_policy_array = value_iteration(policy, MDP, 20)
-    simulate_policy(MDP, optimal_policy)
+    simulate_policy(MDP, optimal_policy, no_episodes)
 
 
 
 if __name__ == '__main__':
-    MDP = MarkovGridWorld(grid_size = 5)
+    MDP = MarkovGridWorld(grid_size = 10)
     policy = random_walk
-    run_random_then_optimal(MDP, policy)
+    run_random_then_optimal(MDP, policy, no_episodes=3)
