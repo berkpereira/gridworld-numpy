@@ -68,7 +68,7 @@ def sample_policy(MDP, policy, state):
     sampled_action = rng.choice(len(MDP.action_space), p=stochastics)
     return sampled_action
 
-def play_episode(MDP, history):
+def play_episode(MDP, policy, history):
     fig = plt.figure(figsize=(12,9))
     ax = fig.add_subplot(projection="3d")
     ax.set_aspect('equal')
@@ -78,6 +78,7 @@ def play_episode(MDP, history):
     def animate(i):
         if i == 0:
             ax.clear()
+            ax.set_title(f'Agent simulation under policy: {policy.__name__}\nDirection probability: {MDP.direction_probability}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
             ax.axes.set_xlim3d(left=0, right=MDP.grid_size - 1)
             ax.axes.set_ylim3d(bottom=0, top=MDP.grid_size - 1)
             ax.axes.set_zlim3d(bottom=0, top=MDP.max_altitude)
@@ -96,7 +97,7 @@ def play_episode(MDP, history):
                 y_obstacle = np.full((no_points, 1), obstacle[1])
                 z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
 
-                ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="x", c='black', s=marker_size*2, alpha=0.3)
+                ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="h", c='black', s=marker_size*2, alpha=0.1)
 
         if history[i][0] == 0:
             return ax.scatter(history[i][1], history[i][2], 0, marker="x", c='red', s=marker_size, alpha=1),
@@ -104,15 +105,18 @@ def play_episode(MDP, history):
             if np.array_equal(history[i][1:3], obstacle):
                 return ax.scatter(history[i][1], history[i][2], history[i][0], marker="x", c='red', s=marker_size, alpha=1),
         if history[i][0] > MDP.max_altitude:
-            return ax.scatter(history[i][1], history[i][2], 0, marker="h", c='green', s=marker_size, alpha=1),
-        return ax.scatter(history[i][1], history[i][2], history[i][0], marker="P", c='blue', s=marker_size, alpha=1),
+            if np.array_equal(history[i][1:3], MDP.landing_zone):
+                return ax.scatter(history[i][1], history[i][2], 0, marker="h", c='green', s=marker_size, alpha=1),
+            else:
+                return ax.scatter(history[i][1], history[i][2], 0, marker="h", c='red', s=marker_size, alpha=1),
+        return ax.scatter(history[i][1], history[i][2], history[i][0], marker="P",  c='blue', s=marker_size, alpha=1),
 
 
-    ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=500, repeat=False)
+    ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=100, repeat=False)
     plt.show()
 
 def simulate_policy(MDP, policy, no_episodes=5):
-    print(f'Generating episodes with policy {policy}')
+    print(f'Generating episodes with policy: {policy.__name__}')
     input('Press Enter to continue...')
     print()
     for i in range(no_episodes):
@@ -121,7 +125,7 @@ def simulate_policy(MDP, policy, no_episodes=5):
         print('Episode history (state, then reward):')
         print(history)
         print()
-        play_episode(MDP, history)
+        play_episode(MDP, policy, history)
 
 def run_random_then_optimal(MDP, policy, no_episodes):
     os.system('clear')
@@ -130,13 +134,15 @@ def run_random_then_optimal(MDP, policy, no_episodes):
     print()
     print()
     print()
-    print('Now running value iteration to converge on optimal policy!')
+    print('Now running value iteration to converge on an optimal policy!')
     input('Press Enter to continue...')
     optimal_policy, optimal_policy_array = value_iteration(policy, MDP, 20)
+    optimal_policy.__name__ = 'optimal_policy'
     simulate_policy(MDP, optimal_policy, no_episodes)
 
 
 
 if __name__ == '__main__':
-    MDP = MarkovGridWorld(grid_size = 5, direction_probability=1)
+    buildings = np.array([[1,0], [1,2], [3,3]], dtype='int32')
+    MDP = MarkovGridWorld(grid_size = 4, max_altitude=20, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=0.90)
     run_random_then_optimal(MDP, random_walk, no_episodes=5)
