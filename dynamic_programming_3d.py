@@ -50,16 +50,16 @@ def stay_land_policy(action, state):
 # 85% probability of ending up where you expected, and 5% in each of the 3 other directions.
 # the argument direction_probability controls the probability with which we can expect the agent's selected action to result in the 'expected' successor state.
 class MarkovGridWorld():
-    def __init__(self, grid_size=3, discount_factor=1, direction_probability = 1, max_altitude = None):
+    def __init__(self, grid_size=3, discount_factor=1, direction_probability = 1, obstacles = np.array([1,1], ndmin=2, dtype='int32'), landing_zone = np.array([0, 0], dtype='int32'), max_altitude = None):
         self.grid_size = grid_size
 
         # self.landing_zone given as a 2-element row vector
 
         #self.landing_zone = np.array([self.grid_size - 1, self.grid_size - 1], dtype='int32') # wanting to land in bottom-right corner of grid
-        self.landing_zone = np.array([0, 0], dtype='int32') # wanting to land in top-left corner of grid
+        self.landing_zone = landing_zone
 
         # trying out obstacles
-        self.obstacles = np.array([[1,0], [1,1], [1,2]], ndmin=2, dtype='int32')
+        self.obstacles = obstacles
         
         # set default max_altitude to 2 times grid size.
         # this is the minimum altitude that allows agent to get from one corner to the other.
