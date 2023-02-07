@@ -280,9 +280,8 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
             for action in MDP.action_space:
                 sub_sum = 0
 
-                #possible_successors = accessible_states(state, MDP)
-                #for successor in possible_successors:
-                for successor in MDP.state_space:
+                possible_successors = accessible_states(state, MDP)
+                for successor in possible_successors:
                     # CRUCIAL NOTE
                     # in the below line, I changed (as of 25/01/2023) what was MDP.reward(successor) to MDP.reward(state)
                     # this made the algorithms work towards optimal policies for the problem as of 25/01/2023, but change back if needed.
@@ -344,7 +343,7 @@ def accessible_states(current_state, MDP):
         output[action] = potential_accessible
     
     # now consider also result of landing action
-    output[-1] = np.concatenate((np.array([current_state[0] + MDP.max_altitude]), current_state[1], np.clip(current_state[2:] + direction, 0, MDP.grid_size - 1)))
+    output[-1] = np.concatenate((np.array([current_state[0] + MDP.max_altitude]), np.array(current_state[1], ndmin=1), np.clip(current_state[2:] + MDP.action_to_direction[current_state[1]][0], 0, MDP.grid_size - 1)))
     return output
 
 # this returns a 2D array with integers codifying greedy actions in it, with respect to an input value function.
