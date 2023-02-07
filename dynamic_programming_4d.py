@@ -83,7 +83,7 @@ class MarkovGridWorld():
         # terminal state is assigned directly to a crash or right after landing manoeuvre reward has been collected, subsequent rewards are always 0.
         # just a reserved state for representation of episode termination in dynamic programming algorithms.
         self.terminal_state = np.array([0, 0, 0, 0], dtype='int32')
-        
+
         # index with heading, THEN index with action.
         self.action_to_direction = {
             1: {0: np.array([1, 0], dtype='int32'),  1: np.array([0, -1], dtype='int32'), 2: np.array([0, 1], dtype='int32')}, # heading down
@@ -95,20 +95,24 @@ class MarkovGridWorld():
 
         self.rng = np.random.default_rng() # construct a default numpy random number Generator class instance, to use in stochastics
         self.direction_probability = direction_probability
-        self.prob_other_directions = (1 - self.direction_probability) / 4 # now divide by 4 because of addition of another 'direction' --> staying put
-        # for ease of iterating over all states, define a 2 x (grid_size**2) matrix below
-        self.state_space = np.zeros(shape=(self.grid_size**2 * ((self.max_altitude * 2) + 1),3), dtype='int32')
-        state_counter = 0 # start counting at 1 because state indexed by 0 is self.terminal_state, all zeros, already as defined
+        self.prob_other_directions = (1 - self.direction_probability) / 2 # now divide by 4 because of addition of another 'direction' --> staying put
         
+        # for ease of iterating over all states, define an explicit list of all states. 
+        # len(self.action_to_direction gives number of valid headings.
+        self.state_space = np.zeros(shape=(self.grid_size**2 * ((self.max_altitude * 2) + 1) * len(self.action_to_direction),4), dtype='int32')
+        state_counter = 0 # start counting at 1 because state indexed by 0 is self.terminal_state, all zeros, already as defined
+
         for altitude in range(2 * self.max_altitude, -1, -1):
-            for row in range(self.grid_size):
-                for col in range(self.grid_size):
-                    # 0 < altitude <= self.max_altitude means in-flight
-                    # altitude > self.max_altitude signifies landing manoeuvre has been pulled from an altitude of altitude % self.max_altitude:
-                    # E.g., if self.max_altitude is 3 and a state has 3rd coordinate of 4, this signifies that agent has landed from an altitude of 1 (ideal landing).
-                    # 0 altitude is terminal/crash, reserved for self.terminal_state
-                    self.state_space[state_counter, :] = [altitude, row, col]
-                    state_counter += 1
+            for heading in range(1, len(self.action_to_direction) + 1): # headings go from 1 to 4, not 0 to 3.
+                for row in range(self.grid_size):
+                    for col in range(self.grid_size):
+                        # 0 < altitude <= self.max_altitude means in-flight
+                        # altitude > self.max_altitude signifies landing manoeuvre has been pulled from an altitude of altitude % self.max_altitude:
+                        # E.g., if self.max_altitude is 3 and a state has 3rd coordinate of 4, this signifies that agent has landed from an altitude of 1 (ideal landing).
+                        # 0 altitude is terminal/crash, reserved for self.terminal_state
+                        self.state_space[state_counter, :] = [altitude, heading, row, col]
+                        state_counter += 1
+
 
     # this method is now extended to 3D
     def state_difference_to_action(self, difference):
