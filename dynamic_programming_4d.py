@@ -14,6 +14,15 @@ def land_policy(action, state):
     else:
         return 0
 
+def turn_right_land(action, state):
+    if action == 1:
+        return 0.5
+    elif action == 3:
+        return 0.5
+    else:
+        return 0
+
+
 
 """
 # lands if on landing zone, otherwise moves up!
@@ -134,11 +143,10 @@ class MarkovGridWorld():
 
             else:
                 for action in range(len(self.action_space) - 1):
-                    for heading in range(len(self.action_to_direction)):
-                        if np.array_equal(difference[2:], self.action_to_direction[heading][action]):
-                            return action
+                    if np.array_equal(difference[2:], self.action_to_direction[start_state[1]][action]):
+                        return action
         elif difference[0] == self.max_altitude: # landed
-            return 5
+            return 3
         # only other possible case is difference[0] == 0 (terminal state transitions). doesn't really matter what the output is in this case.
         else:
             return 0
@@ -275,11 +283,13 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
     delta = -1 # initialising the variable that will store the max change in the value_function across all states
     iteration_no = 1
     while (delta < 0 or delta > epsilon) and iteration_no <= max_iterations:
+        """
         print(f'Iteration number: {iteration_no}')
         print()
         print('Current value function estimate:')
         print(current_value[:MDP.max_altitude + 1])
         print()
+        """
 
         # in 2D, we indexed the value function data structure by the raw state (then a 2D vector).
         # In 3D we have to switch to indexing by a single number, because the value is stored in a column vector.
@@ -300,12 +310,16 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
             current_value[tuple(state)] = current_value_update
             change[tuple(state)] = abs(current_value[tuple(state)] - old_state_value)
         delta = change.max()
+
+        """
         print('Absolute changes to value function estimate:')
         print(change[:MDP.max_altitude + 1])
         print()
         print()
         print()
         print()
+        """
+
         iteration_no += 1
     return current_value
 
@@ -398,7 +412,7 @@ def value_to_greedy_policy(value_function, MDP):
 
 # carry out policy iteration up to some limit number of iterations, or until policy stabilises
 # policy_evaluation(policy, MDP, epsilon, max_iterations)
-def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_iterations=10):
+def policy_iteration(policy, MDP, evaluation_max_iterations=50, improvement_max_iterations=50):
     iteration_count = 1
     policy_is_stable = False
     current_policy = policy
@@ -415,11 +429,13 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
 
         initial_value = policy_evaluation(current_policy, MDP, initial_value, epsilon=0, max_iterations=evaluation_max_iterations)
         print('Previous policy evaluation:')
-        print(initial_value)
+        print(initial_value[:MDP.max_altitude + 1])
         new_policy_array = greedy_policy_array(initial_value, MDP)
         
         if np.array_equal(new_policy_array, current_policy_array):
             policy_is_stable = True
+            print('Policy has stabilised.')
+            print()
             break # stop iterating
 
         current_policy_array = new_policy_array
@@ -439,7 +455,7 @@ def run_policy_evaluation(use_policy):
     os.system('clear')
     default = input('Run policy evaluation with default parameters? (y/n) ')
     if default.split()[0][0].upper() == 'Y':
-        grid_size = 3
+        grid_size = 4
         direction_probability = 1
         max_iterations = 15
         epsilon = 0
@@ -475,10 +491,9 @@ def run_policy_evaluation(use_policy):
     print()
     print('Final value estimation:')
     print(value[:GridWorld.max_altitude + 1])
-    #print(np.column_stack((value, GridWorld.state_space)))
     print()
     print('Greedy policy array representation with respect to final value function estimate:')
-    print(greedy_policy_scalars)
+    print(greedy_policy_scalars[:GridWorld.max_altitude + 1])
 
 def run_value_iteration(policy, MDP, max_iterations=1000):
     os.system('clear')
@@ -503,6 +518,10 @@ def run_value_iteration(policy, MDP, max_iterations=1000):
     elapsed_time = et - st
     print(f'Elapsed time: {elapsed_time} seconds')
 
+def run_policy_iteration(policy, MDP, max_evaluation_iterations, max_improvement_iterations):
+    policy_iteration(policy, MDP, max_evaluation_iterations, max_improvement_iterations)
+
+
 def run_profiler(function):
     import cProfile
     cProfile.run(function, 'output.dat') # function is given as a string (e.g., 'policy_evaluation()')
@@ -520,4 +539,6 @@ def run_profiler(function):
 
 if __name__ == "__main__":
     os.system('clear')
-    run_policy_evaluation(land_policy)
+    MDP = MarkovGridWorld(grid_size=4)
+    run_policy_iteration(random_walk, MDP, 50, 30)
+    #run_policy_evaluation(random_walk)
