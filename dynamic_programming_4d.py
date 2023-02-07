@@ -114,6 +114,7 @@ class MarkovGridWorld():
                         state_counter += 1
 
 
+    """
     # this method is now extended to 3D
     def state_difference_to_action(self, difference):
         if difference[0] == -1: # normal flight, altitude is decreased by 1
@@ -124,9 +125,26 @@ class MarkovGridWorld():
             return 5
         else: # only other possible case is difference[0] == 0 (terminal state transitions). doesn't really matter what the output is in this case.
             return 0
+    """
+
+    # this method is now extended to 4D.
+    # this method is used within the context of potential successors, so we don't have to worry about all the weird possible
+    # state differences, only those which are allowed by the MDP dynamics.
+    def state_difference_to_action(self, difference):
+        
+        if difference[0] == -1: # normal flight, altitude is decreased by       1.
+            for action in range(len(self.action_space) - 1):
+                for heading in range(1, len(self.action_to_direction) + 1):
+                    if np.array_equal(difference[2:], self.action_to_direction[heading][action]):
+                        return action
+        elif difference[0] == self.max_altitude: # landed
+            return 5
+        # only other possible case is difference[0] == 0 (terminal state transitions). doesn't really matter what the output is in this case.
+        else:
+            return 0    
 
     def reward(self, state):
-        if np.array_equal(self.landing_zone, state[1:]): # agent is over landing zone
+        if np.array_equal(self.landing_zone, state[2:]): # agent is over landing zone
             if state[0] > self.max_altitude: # agent has landed
                 if state[0] < (2 * self.max_altitude): # condition just in case altitude of landing was max altitude, which would break use of modulo below (divide by 0 error)
                     return 100 / (state[0] % self.max_altitude) # reward is larger the closer agent was to ground when it performed landing
