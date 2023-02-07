@@ -374,11 +374,11 @@ def greedy_policy_array(value_function, MDP):
 
 # take array of scalar action representations and transform it into an actual policy(action, state)
 def array_to_policy(policy_array, MDP):
-    # 4D array used
-    # 2nd and 3rd and 4th indices correspond to corresponding dimensions of the state space
-    # 1st index corresponds to action number
-    state_action_probabilities = np.zeros(shape = (len(MDP.action_space), MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size))
-    for index in np.ndindex(MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size):
+    # 5D array used
+    # 2nd, 3rd, 4th and 5th indices correspond to dimensions of the state space.
+    # 1st index corresponds to action number.
+    state_action_probabilities = np.zeros(shape = (len(MDP.action_space), MDP.problem_shape[0], MDP.problem_shape[1], MDP.problem_shape[2], MDP.problem_shape[3]))
+    for index in np.ndindex(MDP.problem_shape[0], MDP.problem_shape[1], MDP.problem_shape[2], MDP.problem_shape[3]):
         greedy_action = policy_array[index]
         
         state_action_probabilities[(greedy_action,) + index] = 1 # deterministic policy: just set probability of a single action to 1
@@ -403,7 +403,7 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
     policy_is_stable = False
     current_policy = policy
     initial_value = None
-    current_policy_array = np.ones(shape=(MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size), dtype='int32') * -10 # initialise greedy policy array to a bogus instance
+    current_policy_array = np.ones(shape=MDP.problem_shape, dtype='int32') * -10 # initialise greedy policy array to a bogus instance
     while policy_is_stable is False and iteration_count <= improvement_max_iterations:
         # as per Sutton Barto 2nd, chapter 4.3, next iteration is better-converging if we
         # start with the previous value estimate, hence the assignment into initial_value
