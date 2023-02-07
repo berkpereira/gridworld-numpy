@@ -82,7 +82,7 @@ class MarkovGridWorld():
         
         # terminal state is assigned directly to a crash or right after landing manoeuvre reward has been collected, subsequent rewards are always 0.
         # just a reserved state for representation of episode termination in dynamic programming algorithms.
-        self.terminal_state = np.array([0, 0, 0, 0], dtype='int32')
+        self.terminal_state = np.array([0, 1, 0, 0], dtype='int32')
 
         # index with heading, THEN index with action.
         self.action_to_direction = {
@@ -91,6 +91,8 @@ class MarkovGridWorld():
             3: {0: np.array([-1, 0], dtype='int32'), 1: np.array([0, 1], dtype='int32'), 2: np.array([0, -1], dtype='int32')}, # heading up
             4: {0: np.array([0, -1], dtype='int32'), 1: np.array([-1, 0], dtype='int32'), 2: np.array([1, 0], dtype='int32')}, # heading left
         }
+
+        
 
 
         self.rng = np.random.default_rng() # construct a default numpy random number Generator class instance, to use in stochastics
@@ -113,20 +115,6 @@ class MarkovGridWorld():
                         self.state_space[state_counter, :] = [altitude, heading, row, col]
                         state_counter += 1
 
-
-    """
-    # this method is now extended to 3D
-    def state_difference_to_action(self, difference):
-        if difference[0] == -1: # normal flight, altitude is decreased by 1
-            for action in range(5):
-                if np.array_equal(difference[1:], self.action_to_direction[action]):
-                    return action
-        elif difference[0] == self.max_altitude: # landed
-            return 5
-        else: # only other possible case is difference[0] == 0 (terminal state transitions). doesn't really matter what the output is in this case.
-            return 0
-    """
-
     # this method is now extended to 4D.
     # this method is used within the context of potential successors, so we don't have to worry about all the weird possible
     # state differences, only those which are allowed by the MDP dynamics.
@@ -143,6 +131,16 @@ class MarkovGridWorld():
         else:
             return 0    
 
+    def direction_to_heading(self, direction):
+        if np.array_equal(direction, [1,0]):
+            return 1
+        if np.array_equal(direction, [0,1]):
+            return 2
+        if np.array_equal(direction, [-1,0]):
+            return 3
+        if np.array_equal(direction, [0,-1]):
+            return 4
+
     def reward(self, state):
         if np.array_equal(self.landing_zone, state[2:]): # agent is over landing zone
             if state[0] > self.max_altitude: # agent has landed
@@ -158,25 +156,21 @@ class MarkovGridWorld():
     # returns the probability of a successor state, given a current state and an action.
     # crucial to define these in this generalised form, in order to implement general policy evaluation algorithm.
     def environment_dynamics(self, successor_state, current_state, action):
-        # first, consider the case where agent has landed or crashed, or was already in terminal state before.
+        # first, consider the case where agent has landed or crashed to the ground, or was already in terminal state before.
         # nowhere to go from terminal state except to the terminal state.
-
-
-        # Also consider obstacles:
-        # it's not very realistic nor practical to just get rid of an obstacle's grid from the state space.
-        # the best option is to treat it like another crashed state.
-        # this way, it's still there, and it's possible for a bad policy or for environment dynamics stochasticity to
-        # make the agent crash against it --> most realistic
         if current_state[0] > self.max_altitude or current_state[0] == 0: # agent has landed (> max_altitude), crashed (= 0), or has already been in the terminal state
             if np.array_equal(successor_state, self.terminal_state):
                 return 1 # can only be taken to terminal_state
             else:
                 return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
         
-        
-        # consider obstacle cases, similar to crashed cases.
+        # Also consider obstacles:
+        # it's not very realistic nor practical to just get rid of an obstacle's grid from the state space.
+        # the best option is to treat it like another crashed state.
+        # this way, it's still there, and it's possible for a bad policy or for environment dynamics stochasticity to
+        # make the agent crash against it --> most realistic.
         for obstacle in self.obstacles:
-            if np.array_equal(current_state[1:], obstacle):
+            if np.array_equal(current_state[2:], obstacle):
                 if np.array_equal(successor_state, self.terminal_state):
                     return 1 # can only be taken to terminal_state
                 else:
@@ -184,35 +178,38 @@ class MarkovGridWorld():
 
 
         # then, consider the landing action:
-        # successor_state is guaranteed to be same as current_state, but with a 'landed' altitude.
-        if action == 5:
-            if np.array_equal(successor_state, np.array([current_state[0] + self.max_altitude, current_state[1], current_state[2]], dtype='int32')):
-                # landing must be succeeded by the same state but with altitude offset by self.max_altitude, which signifies landed state and
-                # which collects meaningful reward.
+        # successor_state is guaranteed to be same as current_state, but advanced one cell in its heading, and with a 'landed' altitude.
+        if action == 3:
+            landed_state = np.array([current_state[0] + self.max_altitude, current_state[1], 0, 0], dtype='int32') # placeholders at x and y
+            landed_state[2:] = np.clip(current_state[2:] + self.action_to_direction[current_state[1]][action], 0, self.grid_size - 1) # assign 2D component, as in 2D version
+            if np.array_equal(successor_state, landed_state):
                 return 1
             else:
                 return 0
 
         
-        # Now, consider the case most similar to what we had the most in the 2D environment, where we're considering movement in
-        # horizontal planes. However, have to adapt from the 2D case because we must consider the motion of the agent downwards at each time step.
-        
-        # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
-        # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
-        # and 5% probability for each of the other directions 
-        stochastics = np.ones(len(self.action_space) - 1) * self.prob_other_directions
+        # Now, consider the most common case - normal descending flight.
+        # The stochastics array describes the probability, given an action from (0,1,2), of the result corresponding to what we'd expect from each of those actions
+        # if action == 1, for example, if stochastics == array[0.05,0.9,0.05], then the resulting successor state will be what we would expect of action == 1 with 90% probability,
+        # and 5% probability for each of the other directions.
+        # notice the random directions are contained in forward,right,left WITH RESPECT TO the agent's current heading. So if the agent tries to turn left, it can
+        # actually end up going left, forward or right w.r.t. its state just before the action.  
+        stochastics = np.full(len(self.action_space) - 1, self.prob_other_directions)
         stochastics[action] = self.direction_probability
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
         
-        successor_probability = 0 # initialise probability of successor, might in the end be sum of various components of stochastics vector due to environment boundaries.
+        successor_probability = 0 # initialise probability of successor, which might in the end be sum of various components of stochastics vector due to environment boundaries.
         for direction_number in range(len(self.action_space) - 1):
-            direction = self.action_to_direction[direction_number] # iterate over the five 2-element direction vectors
+            direction = self.action_to_direction[current_state[1]][direction_number] # iterate over the 2-element direction vectors
+            
+            potential_successor = np.zeros(4, dtype='int32') # initialise
+            potential_successor[2:] = np.clip(current_state[1:] + direction, 0, self.grid_size - 1) # assign 2D component, as in 2D version
+            potential_successor[0] = current_state[0] - 1 # assign altitude as current's - 1
+            potential_successor[1] = self.direction_to_heading(direction) # new heading is just equal to the direction the aircraft has travelled in.
+
             # if the direction would lead us from current_state to successor_state, add to the output the probability
             # that the action given would lead us to that direction.
-            potential_successor = np.zeros(3, dtype='int32') # initialise
-            potential_successor[1:] = np.clip(current_state[1:] + direction, 0, self.grid_size - 1) # assign 2D component, as in 2D version
-            potential_successor[0] = current_state[0] - 1 # assign altitude as current's - 1
             if np.array_equal(potential_successor, successor_state):
                 successor_probability += stochastics[direction_number] 
         return successor_probability
