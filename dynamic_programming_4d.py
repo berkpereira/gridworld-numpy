@@ -121,13 +121,22 @@ class MarkovGridWorld():
     # this method is now extended to 4D.
     # this method is used within the context of potential successors, so we don't have to worry about all the weird possible
     # state differences, only those which are allowed by the MDP dynamics.
-    def state_difference_to_action(self, difference):
+    def state_difference_to_action(self, difference, start_state):
         
-        if difference[0] == -1: # normal flight, altitude is decreased by       1.
-            for action in range(len(self.action_space) - 1):
-                for heading in range(len(self.action_to_direction)):
-                    if np.array_equal(difference[2:], self.action_to_direction[heading][action]):
-                        return action
+        if difference[0] == -1: # normal flight, altitude is decreased by 1.
+            if np.array_equal(difference[2:], np.array([0,0])): # catch cases on the boundary of the grid
+                if difference[1] == 0: # same heading
+                    return 0 # keep going "forward"
+                elif difference[1] == -1 or difference[1] == 3: # at corner, heading difference showing it's a right turn
+                    return 1
+                else:
+                    return 2 # at a corner, heading difference showing it's a left turn
+
+            else:
+                for action in range(len(self.action_space) - 1):
+                    for heading in range(len(self.action_to_direction)):
+                        if np.array_equal(difference[2:], self.action_to_direction[heading][action]):
+                            return action
         elif difference[0] == self.max_altitude: # landed
             return 5
         # only other possible case is difference[0] == 0 (terminal state transitions). doesn't really matter what the output is in this case.
@@ -351,7 +360,7 @@ def accessible_states(current_state, MDP):
 # keep in mind that such a greedy policy will always be deterministic, so the probability distribution will be very boring, with 1 assigned to the greedy action and 0 elsewhere.
 # however, this general structure is useful as it can be used directly in the generalised policy evaluation algorithm we've implemented, which assumes that form of a policy(action, state).
 def greedy_policy_array(value_function, MDP):
-    policy_array = np.empty(shape=(MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size), dtype='int32') # this array stores actions (0,1,2,3,4,5) which codify the greedy policy
+    policy_array = np.empty(shape=MDP.problem_shape, dtype='int32') # this array stores actions (0,1,2,3) which codify the greedy policy
     for state in MDP.state_space:
         potential_next_states = accessible_states(state, MDP)
         max_next_value = np.NINF # initialise max value attainable as minus infinity
@@ -360,7 +369,7 @@ def greedy_policy_array(value_function, MDP):
             if potential_value > max_next_value:
                 greedy_state_difference = successor_state - state
                 max_next_value = potential_value
-        policy_array[tuple(state)] = MDP.state_difference_to_action(greedy_state_difference)
+        policy_array[tuple(state)] = MDP.state_difference_to_action(greedy_state_difference, state)
     return policy_array
 
 # take array of scalar action representations and transform it into an actual policy(action, state)
@@ -457,7 +466,7 @@ def run_policy_evaluation(use_policy):
     input('Press Enter to continue...')
     print()
     value = policy_evaluation(policy = use_policy, MDP = GridWorld, initial_value = None, epsilon = epsilon, max_iterations=max_iterations)
-    #greedy_policy_scalars = greedy_policy_array(value, GridWorld)
+    greedy_policy_scalars = greedy_policy_array(value, GridWorld)
     #greedy_policy = array_to_policy(greedy_policy_scalars, GridWorld)
     print('-----------------------------------------------------------------------------')
     print()
@@ -468,8 +477,8 @@ def run_policy_evaluation(use_policy):
     print(value[:GridWorld.max_altitude + 1])
     #print(np.column_stack((value, GridWorld.state_space)))
     print()
-    #print('Greedy policy array representation with respect to final value function estimate:')
-    #print(greedy_policy_scalars)
+    print('Greedy policy array representation with respect to final value function estimate:')
+    print(greedy_policy_scalars)
 
 def run_value_iteration(policy, MDP, max_iterations=1000):
     os.system('clear')
