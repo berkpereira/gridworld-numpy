@@ -6,16 +6,16 @@ import numpy as np
 def random_walk(action, state):
     return 1/4
 
-"""
+
 # just lands!
 def land_policy(action, state):
-    if action == 4:
+    if action == 3:
         return 1
     else:
         return 0
 
 
-
+"""
 # lands if on landing zone, otherwise moves up!
 # in order to just implement this outright, we need to "cheat" and give the policy knowledge based on the MDP a priori
 # but it's okay because just for purposes of testing 3D policy evaluation
@@ -46,7 +46,6 @@ def stay_land_policy(action, state):
             return 1
         else:
             return 0
-
 """
 
 # this class codifies all the dynamics of the problem: a simple gridworld
@@ -55,7 +54,7 @@ def stay_land_policy(action, state):
 # 85% probability of ending up where you expected, and 5% in each of the 3 other directions.
 # the argument direction_probability controls the probability with which we can expect the agent's selected action to result in the 'expected' successor state.
 class MarkovGridWorld():
-    def __init__(self, grid_size=3, discount_factor=1, direction_probability = 1, obstacles = np.array([1,1], ndmin=2, dtype='int32'), landing_zone = np.array([0, 0], dtype='int32'), max_altitude = None):
+    def __init__(self, grid_size=3, discount_factor=1, direction_probability = 1, obstacles = np.array([0,0], ndmin=2, dtype='int32'), landing_zone = np.array([1, 1], dtype='int32'), max_altitude = None):
         self.grid_size = grid_size
 
         # self.landing_zone given as a 2-element row vector
@@ -82,14 +81,14 @@ class MarkovGridWorld():
         
         # terminal state is assigned directly to a crash or right after landing manoeuvre reward has been collected, subsequent rewards are always 0.
         # just a reserved state for representation of episode termination in dynamic programming algorithms.
-        self.terminal_state = np.array([0, 1, 0, 0], dtype='int32')
+        self.terminal_state = np.array([0, 0, 0, 0], dtype='int32')
 
         # index with heading, THEN index with action.
         self.action_to_direction = {
-            1: {0: np.array([1, 0], dtype='int32'),  1: np.array([0, -1], dtype='int32'), 2: np.array([0, 1], dtype='int32')}, # heading down
-            2: {0: np.array([0, 1], dtype='int32'),  1: np.array([1, 0], dtype='int32'), 2: np.array([-1, 0], dtype='int32')}, # heading right
-            3: {0: np.array([-1, 0], dtype='int32'), 1: np.array([0, 1], dtype='int32'), 2: np.array([0, -1], dtype='int32')}, # heading up
-            4: {0: np.array([0, -1], dtype='int32'), 1: np.array([-1, 0], dtype='int32'), 2: np.array([1, 0], dtype='int32')}, # heading left
+            0: {0: np.array([1, 0], dtype='int32'),  1: np.array([0, -1], dtype='int32'), 2: np.array([0, 1], dtype='int32')}, # heading down
+            1: {0: np.array([0, 1], dtype='int32'),  1: np.array([1, 0], dtype='int32'), 2: np.array([-1, 0], dtype='int32')}, # heading right
+            2: {0: np.array([-1, 0], dtype='int32'), 1: np.array([0, 1], dtype='int32'), 2: np.array([0, -1], dtype='int32')}, # heading up
+            3: {0: np.array([0, -1], dtype='int32'), 1: np.array([-1, 0], dtype='int32'), 2: np.array([1, 0], dtype='int32')}, # heading left
         }
 
         
@@ -102,10 +101,14 @@ class MarkovGridWorld():
         # for ease of iterating over all states, define an explicit list of all states. 
         # len(self.action_to_direction gives number of valid headings.
         self.state_space = np.zeros(shape=(self.grid_size**2 * ((self.max_altitude * 2) + 1) * len(self.action_to_direction),4), dtype='int32')
+
+        # 4D array shape to use for value functions, etc.
+        self.problem_shape = (2 * self.max_altitude + 1, len(self.action_to_direction), self.grid_size, self.grid_size)
+        
         state_counter = 0 # start counting at 1 because state indexed by 0 is self.terminal_state, all zeros, already as defined
 
         for altitude in range(2 * self.max_altitude, -1, -1):
-            for heading in range(1, len(self.action_to_direction) + 1): # headings go from 1 to 4, not 0 to 3.
+            for heading in range(len(self.action_to_direction)): # headings from 0 to 3
                 for row in range(self.grid_size):
                     for col in range(self.grid_size):
                         # 0 < altitude <= self.max_altitude means in-flight
@@ -122,24 +125,24 @@ class MarkovGridWorld():
         
         if difference[0] == -1: # normal flight, altitude is decreased by       1.
             for action in range(len(self.action_space) - 1):
-                for heading in range(1, len(self.action_to_direction) + 1):
+                for heading in range(len(self.action_to_direction)):
                     if np.array_equal(difference[2:], self.action_to_direction[heading][action]):
                         return action
         elif difference[0] == self.max_altitude: # landed
             return 5
         # only other possible case is difference[0] == 0 (terminal state transitions). doesn't really matter what the output is in this case.
         else:
-            return 0    
+            return 0
 
     def direction_to_heading(self, direction):
         if np.array_equal(direction, [1,0]):
-            return 1
+            return 0
         if np.array_equal(direction, [0,1]):
-            return 2
+            return 1
         if np.array_equal(direction, [-1,0]):
-            return 3
+            return 2
         if np.array_equal(direction, [0,-1]):
-            return 4
+            return 3
 
     def reward(self, state):
         if np.array_equal(self.landing_zone, state[2:]): # agent is over landing zone
@@ -181,7 +184,7 @@ class MarkovGridWorld():
         # successor_state is guaranteed to be same as current_state, but advanced one cell in its heading, and with a 'landed' altitude.
         if action == 3:
             landed_state = np.array([current_state[0] + self.max_altitude, current_state[1], 0, 0], dtype='int32') # placeholders at x and y
-            landed_state[2:] = np.clip(current_state[2:] + self.action_to_direction[current_state[1]][action], 0, self.grid_size - 1) # assign 2D component, as in 2D version
+            landed_state[2:] = np.clip(current_state[2:] + self.action_to_direction[current_state[1]][0], 0, self.grid_size - 1) # assign 2D component, as in 2D version
             if np.array_equal(successor_state, landed_state):
                 return 1
             else:
@@ -204,7 +207,7 @@ class MarkovGridWorld():
             direction = self.action_to_direction[current_state[1]][direction_number] # iterate over the 2-element direction vectors
             
             potential_successor = np.zeros(4, dtype='int32') # initialise
-            potential_successor[2:] = np.clip(current_state[1:] + direction, 0, self.grid_size - 1) # assign 2D component, as in 2D version
+            potential_successor[2:] = np.clip(current_state[2:] + direction, 0, self.grid_size - 1) # assign 2D component, as in 2D version
             potential_successor[0] = current_state[0] - 1 # assign altitude as current's - 1
             potential_successor[1] = self.direction_to_heading(direction) # new heading is just equal to the direction the aircraft has travelled in.
 
@@ -253,21 +256,21 @@ class MarkovGridWorld():
 # value function is held in a column vector of size equal to len(MDP.state_space)
 def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
     if initial_value is None:
-        current_value = np.zeros((MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size)) # default initial guess is all zeros
+        current_value = np.zeros(MDP.problem_shape) # default initial guess is all zeros
     else:
         current_value = initial_value
 
-    change = np.zeros((MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size)) # this will store the change in the value for each state, in the latest iteration
+    change = np.zeros(MDP.problem_shape) # this will store the change in the value for each state, in the latest iteration
     # delta will always be positive after starting iterations (it's an absolue value).
     # thus we initialise it to -1 so that it doesn't trigger the while condition right away.
     delta = -1 # initialising the variable that will store the max change in the value_function across all states
     iteration_no = 1
     while (delta < 0 or delta > epsilon) and iteration_no <= max_iterations:
-        #print(f'Iteration number: {iteration_no}')
-        #print()
-        #print('Current value function estimate:')
-        #print(current_value[:MDP.max_altitude + 1])
-        #print()
+        print(f'Iteration number: {iteration_no}')
+        print()
+        print('Current value function estimate:')
+        print(current_value[:MDP.max_altitude + 1])
+        print()
 
         # in 2D, we indexed the value function data structure by the raw state (then a 2D vector).
         # In 3D we have to switch to indexing by a single number, because the value is stored in a column vector.
@@ -277,8 +280,9 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
             for action in MDP.action_space:
                 sub_sum = 0
 
-                possible_successors = accessible_states(state, MDP)
-                for successor in possible_successors:
+                #possible_successors = accessible_states(state, MDP)
+                #for successor in possible_successors:
+                for successor in MDP.state_space:
                     # CRUCIAL NOTE
                     # in the below line, I changed (as of 25/01/2023) what was MDP.reward(successor) to MDP.reward(state)
                     # this made the algorithms work towards optimal policies for the problem as of 25/01/2023, but change back if needed.
@@ -288,12 +292,12 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
             current_value[tuple(state)] = current_value_update
             change[tuple(state)] = abs(current_value[tuple(state)] - old_state_value)
         delta = change.max()
-        #print('Absolute changes to value function estimate:')
-        #print(change[:MDP.max_altitude + 1])
-        #print()
-        #print()
-        #print()
-        #print()
+        print('Absolute changes to value function estimate:')
+        print(change[:MDP.max_altitude + 1])
+        print()
+        print()
+        print()
+        print()
         iteration_no += 1
     return current_value
 
@@ -319,26 +323,28 @@ def accessible_states(current_state, MDP):
     if current_state[0] == 0 or current_state[0] > MDP.max_altitude:
         return np.array(MDP.terminal_state, ndmin=2)
 
-    # now onto all other cases, where drone is still flying.
-    # initialise output to be zeros of shape (len(MDP.action_space),3).
+    # now onto all other cases, where aircraft is still flying.
+    # initialise output to be zeros of shape (len(MDP.action_space), 4).
     # 3 columns because 3D state vector.
     # NUMBER OF ROWS determined by the number of actions available to the agent.
     # for instance, with 6 actions (put, down, right, up, left, land), there are, from any given state, AT MOST 6 different states the agent can come to occupy.
     # thus, the output of this function might contain duplicate states, e.g., if current_state is at a boundary of the grid.
     # but that's okay for the purposes of the function.
     # importantly, there might also be unfilled
-    output = np.zeros(shape=(len(MDP.action_space), 3), dtype='int32')
+    output = np.zeros(shape=(len(MDP.action_space), 4), dtype='int32')
     
     for action in range(len(MDP.action_space) - 1): # THIS MINUS ONE DISCARDS THE LANDING ACTION
-        direction = MDP.action_to_direction[action]
-        potential_accessible = np.zeros(3, dtype='int32') # initialise
+        direction = MDP.action_to_direction[current_state[1]][action] # 2-element direction vector
+        potential_accessible = np.zeros(4, dtype='int32') # initialise
 
-        potential_accessible[1:] = np.clip(current_state[1:] + direction, 0, MDP.grid_size - 1)
+        potential_accessible[2:] = np.clip(current_state[2:] + direction, 0, MDP.grid_size - 1)
         potential_accessible[0] = current_state[0] - 1 # assign altitude as current's - 1
+        potential_accessible[1] = MDP.direction_to_heading(direction) # new heading is just equal to the direction the aircraft has travelled in.
+
         output[action] = potential_accessible
     
     # now consider also result of landing action
-    output[-1] = np.concatenate((np.array([current_state[0] + MDP.max_altitude]), current_state[1:]))
+    output[-1] = np.concatenate((np.array([current_state[0] + MDP.max_altitude]), current_state[1], np.clip(current_state[2:] + direction, 0, MDP.grid_size - 1)))
     return output
 
 # this returns a 2D array with integers codifying greedy actions in it, with respect to an input value function.
@@ -439,7 +445,10 @@ def run_policy_evaluation(use_policy):
     print('-----------------------------------------------------------------------------')
     print('Running policy evaluation.')
     print(f'Grid size: {GridWorld.grid_size}')
+    print(f'Max altitude: {GridWorld.max_altitude}')
     print(f'Terminal state: {GridWorld.terminal_state}')
+    print(f'Landing zone: {GridWorld.landing_zone}')
+    print(f'Obstacles: {GridWorld.obstacles}')
     print(f'Discount factor: {GridWorld.discount_factor}')
     print(f'Probability of action resulting in intended direction of motion: {GridWorld.direction_probability}')
     print(f'Epsilon: {epsilon}')
@@ -503,6 +512,4 @@ def run_profiler(function):
 
 if __name__ == "__main__":
     os.system('clear')
-    mdp = MarkovGridWorld(grid_size=6)
-    #run_value_iteration(random_walk, mdp)
-    run_profiler('run_value_iteration(random_walk, mdp)')
+    run_policy_evaluation(land_policy)
