@@ -145,5 +145,5 @@ def run_random_then_optimal(MDP, policy, no_episodes):
 
 if __name__ == '__main__':
     buildings = np.array([[0,0]], ndmin=2, dtype='int32')
-    MDP = MarkovGridWorld(grid_size = 6, max_altitude=6, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=1)
+    MDP = MarkovGridWorld(grid_size = 6, max_altitude=6, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=0.5)
     run_random_then_optimal(MDP, random_walk, no_episodes=5)

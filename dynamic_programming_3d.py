@@ -128,6 +128,7 @@ class MarkovGridWorld():
         # first, consider the case where agent has landed or crashed, or was already in terminal state before.
         # nowhere to go from terminal state except to the terminal state.
 
+
         # Also consider obstacles:
         # it's not very realistic nor practical to just get rid of an obstacle's grid from the state space.
         # the best option is to treat it like another crashed state.
@@ -139,6 +140,7 @@ class MarkovGridWorld():
             else:
                 return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
         
+        
         # consider obstacle cases, similar to crashed cases.
         for obstacle in self.obstacles:
             if np.array_equal(current_state[1:], obstacle):
@@ -146,6 +148,7 @@ class MarkovGridWorld():
                     return 1 # can only be taken to terminal_state
                 else:
                     return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
+
 
         # then, consider the landing action:
         # successor_state is guaranteed to be same as current_state, but with a 'landed' altitude.
@@ -157,7 +160,8 @@ class MarkovGridWorld():
             else:
                 return 0
 
-        # FINALLY, consider the case most similar to what we had the most in the 2D environment, where we're considering movement in
+        
+        # Now, consider the case most similar to what we had the most in the 2D environment, where we're considering movement in
         # horizontal planes. However, have to adapt from the 2D case because we must consider the motion of the agent downwards at each time step.
         
         # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
@@ -169,7 +173,7 @@ class MarkovGridWorld():
         # these probabilities have been defined by the stochastics vector above
         
         successor_probability = 0 # initialise probability of successor, might in the end be sum of various components of stochastics vector due to environment boundaries.
-        for direction_number in range(5):
+        for direction_number in range(len(self.action_space) - 1):
             direction = self.action_to_direction[direction_number] # iterate over the five 2-element direction vectors
             # if the direction would lead us from current_state to successor_state, add to the output the probability
             # that the action given would lead us to that direction.
@@ -179,6 +183,7 @@ class MarkovGridWorld():
             if np.array_equal(potential_successor, successor_state):
                 successor_probability += stochastics[direction_number] 
         return successor_probability
+        
 
     # this is where the dynamics are SAMPLED.
     # returns a sample of the successor state given a current state and an action, as well as the reward from the successor
@@ -216,7 +221,7 @@ class MarkovGridWorld():
 
 # epsilon = the threshold delta must go below in order for us to stop
 # value function is held in a column vector of size equal to len(MDP.state_space)
-def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=5):
+def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
     if initial_value is None:
         current_value = np.zeros((MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size)) # default initial guess is all zeros
     else:
@@ -264,6 +269,7 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=5):
 
 # the below returns whether successor_state is in principle reachable from current_state, given the gridworld assumption
 # of a single rectangular move per time step in the grid environment domain
+# THIS IS NOT ADAPTED TO 3D, BECAUSE WE DON'T USE IT IN THE ALGORITHMS AS OF 06/02/2023
 def is_accessible(current_state, successor_state):
     state_difference = successor_state - current_state
     if np.array_equal(state_difference, [1,0]) or np.array_equal(state_difference, [-1,0]) or np.array_equal(state_difference, [0,1]) or np.array_equal(state_difference, [0,-1]):
@@ -291,10 +297,9 @@ def accessible_states(current_state, MDP):
     # thus, the output of this function might contain duplicate states, e.g., if current_state is at a boundary of the grid.
     # but that's okay for the purposes of the function.
     # importantly, there might also be unfilled
-    action_space_size = len(MDP.action_space)
-    output = np.zeros(shape=(action_space_size, 3), dtype='int32')
+    output = np.zeros(shape=(len(MDP.action_space), 3), dtype='int32')
     
-    for action in range(action_space_size - 1): # THIS MINUS ONE DISCARDS THE LANDING ACTION
+    for action in range(len(MDP.action_space) - 1): # THIS MINUS ONE DISCARDS THE LANDING ACTION
         direction = MDP.action_to_direction[action]
         potential_accessible = np.zeros(3, dtype='int32') # initialise
 
@@ -303,7 +308,7 @@ def accessible_states(current_state, MDP):
         output[action] = potential_accessible
     
     # now consider also result of landing action
-    output[action_space_size - 1] = np.concatenate((np.array([current_state[0] + MDP.max_altitude]), current_state[1:]))
+    output[-1] = np.concatenate((np.array([current_state[0] + MDP.max_altitude]), current_state[1:]))
     return output
 
 # this returns a 2D array with integers codifying greedy actions in it, with respect to an input value function.
@@ -468,5 +473,6 @@ def run_profiler(function):
 
 if __name__ == "__main__":
     os.system('clear')
-    mdp = MarkovGridWorld(grid_size=3)
-    run_value_iteration(random_walk, mdp)
+    mdp = MarkovGridWorld(grid_size=6)
+    #run_value_iteration(random_walk, mdp)
+    run_profiler('run_value_iteration(random_walk, mdp)')

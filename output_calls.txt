@@ -1,0 +1,136 @@
+Mon Feb  6 18:55:50 2023    output.dat
+
+         35893072 function calls (34155843 primitive calls) in 13.779 seconds
+
+   Ordered by: call count
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+  5139042    0.360    0.000    0.360    0.000 {built-in method numpy.asarray}
+3890044/2171384    0.681    0.000    8.008    0.000 {built-in method numpy.core._multiarray_umath.implement_array_function}
+  1718651    0.080    0.000    0.080    0.000 {built-in method builtins.isinstance}
+  1718640    0.092    0.000    0.092    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:3117(_ndim_dispatcher)
+  1718640    0.675    0.000    0.923    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:3121(ndim)
+  1718640    1.446    0.000    3.056    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_methods.py:92(_clip_dep_is_scalar_nan)
+  1718640    0.257    0.000    0.337    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_methods.py:102(_clip_dep_is_byte_swapped)
+  1718640    0.346    0.000    1.610    0.000 <__array_function__ internals>:177(ndim)
+  1140200    0.795    0.000    0.795    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+  1140119    0.070    0.000    0.070    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/numeric.py:2398(_array_equal_dispatcher)
+  1140119    0.787    0.000    1.988    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/numeric.py:2402(array_equal)
+  1140119    0.144    0.000    0.939    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_methods.py:60(_all)
+  1140119    0.252    0.000    2.487    0.000 <__array_function__ internals>:177(array_equal)
+  1140119    0.150    0.000    1.089    0.000 {method 'all' of 'numpy.ndarray' objects}
+   892626    0.167    0.000    0.167    0.000 {built-in method numpy.zeros}
+   859320    0.207    0.000    5.358    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:51(_wrapfunc)
+   859320    0.060    0.000    0.060    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:2081(_clip_dispatcher)
+   859320    0.229    0.000    5.587    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:2085(clip)
+   859320    0.936    0.000    0.936    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_methods.py:107(_clip_dep_invoke_with_casting)
+   859320    0.621    0.000    4.950    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_methods.py:126(_clip)
+   859320    0.207    0.000    6.022    0.000 <__array_function__ internals>:177(clip)
+   859320    0.055    0.000    0.055    0.000 {built-in method builtins.getattr}
+   859320    0.145    0.000    5.095    0.000 {method 'clip' of 'numpy.ndarray' objects}
+   477652    0.020    0.000    0.020    0.000 {built-in method builtins.len}
+   201960    1.962    0.000    9.213    0.000 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:127(environment_dynamics)
+   201960    0.070    0.000    0.479    0.000 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:113(reward)
+   138612    0.018    0.000    0.018    0.000 {built-in method numpy.empty}
+   138611    0.010    0.000    0.010    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/multiarray.py:1071(copyto)
+   138611    0.041    0.000    0.116    0.000 <__array_function__ internals>:177(copyto)
+   138601    0.050    0.000    0.184    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/numeric.py:149(ones)
+    97030    0.028    0.000    0.028    0.000 {built-in method numpy.array}
+    69300    0.496    0.000    1.751    0.000 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:283(accessible_states)
+    54000    0.028    0.000    0.028    0.000 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:343(policy)
+    33264    0.003    0.000    0.003    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/multiarray.py:148(concatenate)
+    33264    0.010    0.000    0.034    0.000 <__array_function__ internals>:177(concatenate)
+ 18604/35    0.015    0.000    0.036    0.001 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:789(recurser)
+    15552    0.005    0.000    0.007    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:739(_extendLine)
+    15552    0.004    0.000    0.012    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:753(_extendLine_pretty)
+    15552    0.001    0.000    0.001    0.000 {method 'splitlines' of 'str' objects}
+    12600    0.002    0.000    0.002    0.000 {built-in method numpy.core._multiarray_umath.dragon4_scientific}
+     9900    0.015    0.000    0.040    0.000 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:103(state_difference_to_action)
+     9900    0.006    0.000    0.008    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:1018(__call__)
+     9900    0.001    0.000    0.001    0.000 {method 'split' of 'str' objects}
+     9900    0.001    0.000    0.001    0.000 {built-in method builtins.abs}
+     9010    0.001    0.000    0.001    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/lib/index_tricks.py:684(__next__)
+     9010    0.000    0.000    0.000    0.000 {built-in method builtins.next}
+     7200    0.001    0.000    0.001    0.000 {built-in method numpy.core._multiarray_umath.dragon4_positional}
+     6307    0.001    0.000    0.002    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:960(<genexpr>)
+     6307    0.001    0.000    0.003    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:963(<genexpr>)
+     6307    0.001    0.000    0.001    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:964(<genexpr>)
+     6307    0.000    0.000    0.001    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:965(<genexpr>)
+     6307    0.000    0.000    0.001    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:968(<genexpr>)
+     6307    0.000    0.000    0.001    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:977(<genexpr>)
+     6300    0.000    0.000    0.000    0.000 {method 'partition' of 'str' objects}
+     5652    0.001    0.000    0.001    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:1231(__call__)
+     5400    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:6(random_walk)
+     4702    0.000    0.000    0.000    0.000 {method 'rstrip' of 'str' objects}
+     3604    0.001    0.000    0.001    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:984(<genexpr>)
+     3604    0.001    0.000    0.002    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:989(<genexpr>)
+     3604    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:993(<genexpr>)
+     3604    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:994(<genexpr>)
+     2651    0.001    0.000    0.003    0.000 {built-in method builtins.max}
+      116    0.000    0.000    0.000    0.000 {built-in method builtins.issubclass}
+      105    0.000    0.000    0.000    0.000 {method 'items' of 'dict' objects}
+       92    0.006    0.000    0.055    0.001 {built-in method builtins.print}
+       70    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:70(<dictcomp>)
+       70    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:69(_wrapreduction)
+       44    0.000    0.000    0.000    0.000 {built-in method numpy.geterrobj}
+       35    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:2672(_amax_dispatcher)
+       35    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:2677(amax)
+       35    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:2797(_amin_dispatcher)
+       35    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/fromnumeric.py:2802(amin)
+       35    0.000    0.000    0.000    0.000 <__array_function__ internals>:177(amax)
+       35    0.000    0.000    0.000    0.000 <__array_function__ internals>:177(amin)
+       35    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:72(<dictcomp>)
+       35    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:64(_make_options_dict)
+       35    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:403(_get_formatdict)
+       35    0.000    0.000    0.013    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:452(_get_format_function)
+       35    0.000    0.000    0.049    0.001 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:506(wrapper)
+       35    0.000    0.000    0.049    0.001 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:523(_array2string)
+       35    0.000    0.000    0.050    0.001 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:561(array2string)
+       35    0.000    0.000    0.036    0.001 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:780(_formatArray)
+       35    0.000    0.000    0.050    0.001 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:1575(_array_str_implementation)
+       35    0.000    0.000    0.000    0.000 {method 'update' of 'dict' objects}
+       35    0.000    0.000    0.000    0.000 {method 'copy' of 'dict' objects}
+       35    0.000    0.000    0.000    0.000 {method 'add' of 'set' objects}
+       35    0.000    0.000    0.000    0.000 {method 'discard' of 'set' objects}
+       35    0.000    0.000    0.000    0.000 {built-in method builtins.id}
+       35    0.000    0.000    0.000    0.000 {built-in method builtins.locals}
+       35    0.000    0.000    0.000    0.000 {built-in method _thread.get_ident}
+       24    0.000    0.000    0.001    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:410(<lambda>)
+       24    0.000    0.000    0.001    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:1223(__init__)
+       24    0.000    0.000    0.000    0.000 {method 'format' of 'str' objects}
+       22    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_ufunc_config.py:32(seterr)
+       22    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_ufunc_config.py:131(geterr)
+       22    0.000    0.000    0.000    0.000 {built-in method numpy.seterrobj}
+       11    0.032    0.003    0.323    0.029 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:318(greedy_policy_array)
+       11    0.274    0.025   11.496    1.045 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:224(policy_evaluation)
+       11    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_methods.py:38(_amax)
+       11    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_ufunc_config.py:425(__init__)
+       11    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_ufunc_config.py:429(__enter__)
+       11    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/_ufunc_config.py:434(__exit__)
+       11    0.000    0.000    0.012    0.001 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:411(<lambda>)
+       11    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:898(_none_or_positive_arg)
+       11    0.000    0.000    0.012    0.001 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:907(__init__)
+       11    0.002    0.000    0.012    0.001 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/arrayprint.py:934(fillFormat)
+       11    0.000    0.000    0.000    0.000 {method 'max' of 'numpy.ndarray' objects}
+       10    0.002    0.000    0.004    0.000 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:332(array_to_policy)
+       10    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/multiarray.py:80(empty_like)
+       10    0.000    0.000    0.000    0.000 <__array_function__ internals>:177(empty_like)
+       10    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/numeric.py:76(zeros_like)
+       10    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/core/numeric.py:72(_zeros_like_dispatcher)
+       10    0.000    0.000    0.000    0.000 <__array_function__ internals>:177(zeros_like)
+       10    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/lib/index_tricks.py:657(__init__)
+       10    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/lib/index_tricks.py:665(__iter__)
+       10    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/lib/stride_tricks.py:20(__init__)
+       10    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/lib/stride_tricks.py:25(_maybe_view_as_subclass)
+       10    0.000    0.000    0.000    0.000 /Users/gabrielpereira/repos/gridworld-numpy/.env/lib/python3.10/site-packages/numpy/lib/stride_tricks.py:38(as_strided)
+        2    0.000    0.000    0.000    0.000 {built-in method time.time}
+        1    0.000    0.000   11.879   11.879 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:357(policy_iteration)
+        1    0.000    0.000   11.879   11.879 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:390(value_iteration)
+        1    0.000    0.000   13.779   13.779 /Users/gabrielpereira/repos/gridworld-numpy/dynamic_programming_3d.py:436(run_value_iteration)
+        1    0.000    0.000   13.779   13.779 {built-in method builtins.exec}
+        1    1.897    1.897    1.897    1.897 {built-in method builtins.input}
+        1    0.003    0.003    0.003    0.003 {built-in method posix.system}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000   13.779   13.779 <string>:1(<module>)
+
+

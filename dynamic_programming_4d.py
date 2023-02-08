@@ -23,40 +23,6 @@ def turn_right_land(action, state):
         return 0
 
 
-
-"""
-# lands if on landing zone, otherwise moves up!
-# in order to just implement this outright, we need to "cheat" and give the policy knowledge based on the MDP a priori
-# but it's okay because just for purposes of testing 3D policy evaluation
-def up_land_policy(action, state):
-    if np.array_equal(state[1:], np.array([0,0])):
-        if action == 5: # land
-            return 1
-        else:
-            return 0
-    else:
-        if action == 3: # = up
-            return 1
-        else:
-            return 0
-
-
-
-# lands if on landing zone and at altitude 1 (ideal conditions).
-# in any other situation, just stays put!
-def stay_land_policy(action, state):
-    if np.array_equal(state[1:], np.array([0,0])) and state[0] == 1:
-        if action == 5:
-            return 1
-        else:
-            return 0
-    else:
-        if action == 0: # stay put if conditions not perfect!
-            return 1
-        else:
-            return 0
-"""
-
 # this class codifies all the dynamics of the problem: a simple gridworld
 # as a starter in implementing GridWorld stochastics, I will try to program simple stochastics into this gridworld's dynamics
 # E.G., given a certain action in a rectangular direction, we can assign the successor state some stochastics like
@@ -207,7 +173,43 @@ class MarkovGridWorld():
             else:
                 return 0
 
+        # consider BOUNDARIES OF DOMAIN. agent was exploting these to just descend vertically, so we need to prevent it from being
+        # able to do that. We must force the agent to turn it when it reaches a domain boundary.
+        # Give it the choice of which way to turn. The wind stochasticity gets implemented differently, because it doesn't make sense to
+        # make it possible for the wind to make the agent go forward (ends up with vertical descent again).
+        # Instead we will let the agent turn as intended with probability self.direction_probability, and go the other way
+        # with probability (1 - self.direction_probability).
         
+        # first consider the CORNERS.
+        # if the agent is at a corner, it is NECESSARILY heading towards it, so it must be forced to turn, regardless of its action.
+        if (current_state[2] == 0 and current_state[3] == 0): # top-left corner
+            if current_state[1] == 2: # heading up
+                if np.array_equal(successor_state, np.array([current_state[0] - 1, 1, 0, 1], dtype='int32')): # turn to global right
+                    return 1
+                else:
+                    return 0
+            else: # heading left
+                if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, 1, 0], dtype='int32')): # turn to global down
+                    return 1
+                else:
+                    return 0
+        if (current_state[2] == 0 and current_state[3] == (self.grid_size - 1)): # top-right corner
+            if current_state[1] == 1: # heading right
+                if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, 1, self.grid_size - 1], dtype='int32')): # turn to global down
+                    return 1
+                else: # heading up
+                    return 0
+            else: # heading left
+                if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, 1, 0], dtype='int32')): # turn to global down
+                    return 1
+                else:
+                    return 0
+        if (current_state[2] == (self.grid_size - 1) and current_state[3] == 0): # bottom-left corner
+            pass
+        if (current_state[2] == (self.grid_size - 1) and current_state[3] == (self.grid_size - 1)): # bottom-right corner
+            pass
+
+
         # Now, consider the most common case - normal descending flight.
         # The stochastics array describes the probability, given an action from (0,1,2), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.05,0.9,0.05], then the resulting successor state will be what we would expect of action == 1 with 90% probability,
