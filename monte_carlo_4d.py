@@ -15,7 +15,7 @@ def generate_episode(MDP, policy):
     # from nature of the problem, the max number of observed states in an episode (up to reaching MDP.termina_state)
     # is MDP.max_altitude + 2 (descend all of the altitude down to 1, then land, and then get taken to MDP.terminal_state).
     # Also note history is not an integer array, because the rewards observed are in general not integers.
-    history = np.zeros(shape=(MDP.max_altitude + 2, no_state_dimensions + 1))
+    history = - np.ones(shape=(MDP.max_altitude + 2, no_state_dimensions + 1))
 
     # now we pick a state with altitude = MDP.max_altitude, with equal probability of any state.
     # this is initialising the state that then gets taken forward via sampling of problem dynamics and policy
@@ -145,5 +145,5 @@ def run_random_then_optimal(MDP, policy, no_episodes):
 
 if __name__ == '__main__':
     buildings = np.array([[0,0]], ndmin=2, dtype='int32')
-    MDP = MarkovGridWorld(grid_size = 6, max_altitude=6, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=0.5)
+    MDP = MarkovGridWorld(grid_size = 4, max_altitude=10, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=1)
     run_random_then_optimal(MDP, random_walk, no_episodes=5)

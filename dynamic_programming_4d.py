@@ -4,7 +4,7 @@ import numpy as np
 
 # for generality we're defining the policy as being a function of an action and a current state
 def random_walk(action, state):
-    return 1/4
+    return 1/3
 
 
 # just lands!
@@ -97,7 +97,8 @@ class MarkovGridWorld():
     # state differences, only those which are allowed by the MDP dynamics.
     def state_difference_to_action(self, difference, start_state):
         
-        # the below will become redundant once the dynamics force the agent to turn at corners and boundaries.
+        # the below has become redundant because tre dynamics force the agent to turn at corners anyway.
+        # but we will leave it in so that it's clear that the agent "learns" to do it nonetheless.
         if np.array_equal(difference[2:], np.array([0,0])): # catch cases on the boundary of the grid
             if difference[1] == 0: # same heading
                 return 0 # keep going "forward"
@@ -106,9 +107,12 @@ class MarkovGridWorld():
             else:
                 return 2 # at a corner, heading difference showing it's a left turn
         else:
-            for action in range(len(self.action_space) - 1):
+            for action in range(len(self.action_space)):
                 if np.array_equal(difference[2:], self.action_to_direction[start_state[1]][action]):
                     return action
+        
+        # if nothing is found, terminal states and so on
+        return 2
 
     def direction_to_heading(self, direction):
         if np.array_equal(direction, [1,0]):
@@ -123,6 +127,11 @@ class MarkovGridWorld():
     # must redefine the reward to be spread out on the ground.
     # however, prevent any reward from being there at the obstacles! can't crash into a building at ground level and expect to get any reward!
     def reward(self, state):
+        if state[2] == self.landing_zone[0] and state[3] == self.landing_zone[1] and state[0] == 0:
+            return 100
+        else:
+            return 0
+        """
         if np.array_equal(self.landing_zone, state[2:]): # agent is over landing zone
             if state[0] > self.max_altitude: # agent has landed
                 if state[0] < (2 * self.max_altitude): # condition just in case altitude of landing was max altitude, which would break use of modulo below (divide by 0 error)
@@ -133,6 +142,7 @@ class MarkovGridWorld():
                 return 0
         else:
             return 0
+        """
 
     # returns the probability of a successor state, given a current state and an action.
     # crucial to define these in this generalised form, in order to implement general policy evaluation algorithm.
@@ -393,13 +403,13 @@ class MarkovGridWorld():
         # and 5% probability for each of the other directions.
         # notice the random directions are contained in forward,right,left WITH RESPECT TO the agent's current heading. So if the agent tries to turn left, it can
         # actually end up going left, forward or right w.r.t. its state just before the action.  
-        stochastics = np.full(len(self.action_space) - 1, self.prob_other_directions)
+        stochastics = np.full(len(self.action_space), self.prob_other_directions)
         stochastics[action] = self.direction_probability
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
         
         successor_probability = 0 # initialise probability of successor, which might in the end be sum of various components of stochastics vector due to environment boundaries.
-        for direction_number in range(len(self.action_space) - 1):
+        for direction_number in range(len(self.action_space)):
             direction = self.action_to_direction[current_state[1]][direction_number] # iterate over the 2-element direction vectors
             
             potential_successor = np.zeros(4, dtype='int32') # initialise
@@ -419,7 +429,7 @@ class MarkovGridWorld():
     # it's NOT used in the dynamic programming algorithms because those require the actual probability distributions of state transitions as functions of actions.
     # will be used if we move onto Monte Carlo methods or to just run individual episodes of the environment/agent/policy.
     def state_transition(self, state, action):
-        if state[0] == 0 or state[0] > self.max_altitude: # crashed, terminal, or landed
+        if state[0] <= 0: # crashed, terminal, or landed
             new_state = self.terminal_state
             return new_state
         
@@ -429,21 +439,226 @@ class MarkovGridWorld():
                 new_state = self.terminal_state
                 return new_state
         
-        # consider landing action.
-        # only changes altitude state dimension.
-        if action == 3:
-            direction = self.action_to_direction[state[1]][0] # going forward when landing, hence 0
-            new_state_2d = np.clip(state[2:] + direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
-            new_state = np.array([state[0] + self.max_altitude, state[1], new_state_2d[0], new_state_2d[1]], dtype='int32')
-            return new_state
-
         # we're left with the case in flight, with actions being one of (0,1,2,3,4)
         # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
         # and 5% probability for each of the other directions.
-        stochastics = np.full(len(self.action_space) - 1, self.prob_other_directions)
+        
+
+        # first consider the CORNERS.
+        # if the agent is at a corner, it is NECESSARILY heading towards it, so it must be forced to turn, regardless of its action.
+        if (state[2] == 0 and state[3] == 0): # top-left corner
+            if state[1] == 2: # heading up
+                new_state = np.array([state[0] - 1, 1, 0, 1], dtype='int32') # turn to global right
+                return new_state
+            else: # heading left
+                new_state = np.array([state[0] - 1, 0, 1, 0], dtype='int32') # turn to global down
+                return new_state
+        if (state[2] == 0 and state[3] == (self.grid_size - 1)): # top-right corner
+            if state[1] == 1: # heading right
+                new_state = np.array([state[0] - 1, 0, 1, self.grid_size - 1], dtype='int32') # turn to global down
+                return new_state
+            else: # heading up
+                new_state = np.array([state[0] - 1, 3, 0, self.grid_size - 2], dtype='int32') # turn to global left
+                return new_state
+        if (state[2] == (self.grid_size - 1) and state[3] == 0): # bottom-left corner
+            if state[1] == 0: # heading down
+                new_state = np.array([state[0] - 1, 1, self.grid_size - 1, 1], dtype='int32') # turn to global right
+                return new_state
+            else: # heading left
+                new_state = np.array([state[0] - 1, 2, self.grid_size - 2, 0], dtype='int32') # turn to global up
+                return new_state
+        if (state[2] == (self.grid_size - 1) and state[3] == (self.grid_size - 1)): # bottom-right corner
+            if state[1] == 0: # heading down
+                new_state = np.array([state[0] - 1, 3, self.grid_size - 1, self.grid_size - 2], dtype='int32') # turn to global left
+                return new_state
+            else: # heading right
+                new_state = np.array([state[0] - 1, 2, self.grid_size - 2, self.grid_size - 1], dtype='int32') # turn to global up
+                return new_state
+        
+
+        # now consider NON-CORNER BOUNDARIES
+        if state[2] == 0: # top boundary
+            if state[1] == 2: # heading up, must be forced to turn
+                if action == 0: # agent decides to keep going against wall
+                    stochastics = np.array([0, 0.50, 0.50])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+            elif state[1] == 1: # heading right
+                if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
+                    stochastics = np.array([self.direction_probability, 1 - self.direction_probability, 0])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+                else: # trying to turn away from the wall; return opposite probabilities
+                    stochastics = np.array([1 - self.direction_probability, self.direction_probability, 0])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+            elif state[1] == 3: # heading left
+                if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
+                    stochastics = np.array([self.direction_probability, 0, 1 - self.direction_probability])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+                else: # trying to turn away from the wall; return opposite probabilities
+                    stochastics = np.array([1 - self.direction_probability, 0, self.direction_probability])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+        if state[2] == self.grid_size - 1: # bottom boundary
+            if state[1] == 0: # heading down, must be forced to turn
+                if action == 0: # agent decides to keep going against wall
+                    stochastics = np.array([0, 0.50, 0.50])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+            elif state[1] == 1: # heading right
+                if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
+                    stochastics = np.array([self.direction_probability, 0, 1 - self.direction_probability])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+                else: # trying to turn away from the wall; return opposite probabilities
+                    stochastics = np.array([1 - self.direction_probability, 0, self.direction_probability])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+            elif state[1] == 3: # heading left
+                if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
+                    stochastics = np.array([self.direction_probability, 1 - self.direction_probability, 0])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+                else: # trying to turn away from the wall; return opposite probabilities
+                    stochastics = np.array([1 - self.direction_probability, self.direction_probability, 0])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+        if state[3] == 0: # left boundary
+            if state[1] == 3: # heading left, must be forced to turn
+                if action == 0: # agent decides to keep going against wall
+                    stochastics = np.array([0, 0.50, 0.50])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+            elif state[1] == 0: # heading down
+                if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
+                    stochastics = np.array([self.direction_probability, 0, 1 - self.direction_probability])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+                else: # trying to turn away from the wall; return opposite probabilities
+                    stochastics = np.array([1 - self.direction_probability, 0, self.direction_probability])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+            elif state[1] == 2: # heading up
+                if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
+                    stochastics = np.array([self.direction_probability, 1 - self.direction_probability, 0])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+                else: # trying to turn away from the wall; return opposite probabilities
+                    stochastics = np.array([1 - self.direction_probability, self.direction_probability, 0])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+        if state[3] == self.grid_size - 1: # right boundary
+            if state[1] == 1: # heading right, must be forced to turn
+                if action == 0: # agent decides to keep going against wall
+                    stochastics = np.array([0, 0.50, 0.50])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+            elif state[1] == 0: # heading down
+                if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
+                    stochastics = np.array([self.direction_probability, 1 - self.direction_probability, 0])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+                else: # trying to turn away from the wall; return opposite probabilities
+                    stochastics = np.array([1 - self.direction_probability, self.direction_probability, 0])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+            elif state[1] == 2: # heading up
+                if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
+                    stochastics = np.array([self.direction_probability, 0, 1 - self.direction_probability])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+                else: # trying to turn away from the wall; return opposite probabilities
+                    stochastics = np.array([1 - self.direction_probability, 0, self.direction_probability])
+                    effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+                    effective_direction = self.action_to_direction[state[1]][effective_action]
+                    new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+                    new_heading = self.direction_to_heading(effective_direction)
+                    new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
+                    return new_state
+
+        # finally we consider a normal case not on the boundaries of the problem
+        stochastics = np.full(len(self.action_space), self.prob_other_directions)
         stochastics[action] = self.direction_probability
-        effective_action = self.rng.choice(len(self.action_space) - 1, p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+        effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
         effective_direction = self.action_to_direction[state[1]][effective_action]
         new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
         new_heading = self.direction_to_heading(effective_direction)
@@ -483,11 +698,12 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
 
                 possible_successors = accessible_states(state, MDP)
                 for successor in possible_successors:
+                #for successor in MDP.state_space:
                     # CRUCIAL NOTE
                     # in the below line, I changed (as of 25/01/2023) what was MDP.reward(successor) to MDP.reward(state)
                     # this made the algorithms work towards optimal policies for the problem as of 25/01/2023, but change back if needed.
                     # SEE for-meeting14.md in UoB repo FOR DETAILS
-                    sub_sum += MDP.environment_dynamics(successor, state, action) * (MDP.reward(state) + MDP.discount_factor * current_value[tuple(successor)])
+                    sub_sum += MDP.environment_dynamics(successor, state, action) * (MDP.reward(successor) + MDP.discount_factor * current_value[tuple(successor)])
                 current_value_update += policy(action,state) * sub_sum
             current_value[tuple(state)] = current_value_update
             change[tuple(state)] = abs(current_value[tuple(state)] - old_state_value)
@@ -524,20 +740,20 @@ def accessible_states(current_state, MDP):
     # agent has landed or
     # agent has crashed.
     # in these cases, the only accessible state from there is the MDP's terminal state.
-    if current_state[0] == 0 or current_state[0] > MDP.max_altitude:
+    if current_state[0] <= 0:
         return np.array(MDP.terminal_state, ndmin=2)
 
     # now onto all other cases, where aircraft is still flying.
     # initialise output to be zeros of shape (len(MDP.action_space), 4).
     # 3 columns because 3D state vector.
     # NUMBER OF ROWS determined by the number of actions available to the agent.
-    # for instance, with 6 actions (put, down, right, up, left, land), there are, from any given state, AT MOST 6 different states the agent can come to occupy.
+    # for instance, with 3 actions (forward, right, left), there are, from any given state, AT MOST 3 different states the agent can come to occupy.
     # thus, the output of this function might contain duplicate states, e.g., if current_state is at a boundary of the grid.
     # but that's okay for the purposes of the function.
-    # importantly, there might also be unfilled
     output = np.zeros(shape=(len(MDP.action_space), 4), dtype='int32')
     
-    for action in range(len(MDP.action_space) - 1): # THIS MINUS ONE DISCARDS THE LANDING ACTION
+    # we are not accounting for the more restrictive boundary cases, but it's okay, the purpose of this function is to just cut down on the search space.
+    for action in range(len(MDP.action_space)):
         direction = MDP.action_to_direction[current_state[1]][action] # 2-element direction vector
         potential_accessible = np.zeros(4, dtype='int32') # initialise
 
@@ -547,8 +763,6 @@ def accessible_states(current_state, MDP):
 
         output[action] = potential_accessible
     
-    # now consider also result of landing action
-    output[-1] = np.concatenate((np.array([current_state[0] + MDP.max_altitude]), np.array(current_state[1], ndmin=1), np.clip(current_state[2:] + MDP.action_to_direction[current_state[1]][0], 0, MDP.grid_size - 1)))
     return output
 
 # this returns a 2D array with integers codifying greedy actions in it, with respect to an input value function.
@@ -637,8 +851,9 @@ def run_policy_evaluation(use_policy):
     os.system('clear')
     default = input('Run policy evaluation with default parameters? (y/n) ')
     if default.split()[0][0].upper() == 'Y':
-        grid_size = 4
+        grid_size = 3
         direction_probability = 1
+        max_altitude = 4
         max_iterations = 15
         epsilon = 0
     else:
@@ -647,7 +862,7 @@ def run_policy_evaluation(use_policy):
         max_iterations = int(input('Input max number of iterations: '))
         epsilon = float(input('Input epsilon for convergence: '))
 
-    GridWorld = MarkovGridWorld(grid_size=grid_size, direction_probability=direction_probability)
+    GridWorld = MarkovGridWorld(grid_size=grid_size, direction_probability=direction_probability, max_altitude=max_altitude)
     print('-----------------------------------------------------------------------------')
     print('Running policy evaluation.')
     print(f'Grid size: {GridWorld.grid_size}')
@@ -664,7 +879,7 @@ def run_policy_evaluation(use_policy):
     input('Press Enter to continue...')
     print()
     value = policy_evaluation(policy = use_policy, MDP = GridWorld, initial_value = None, epsilon = epsilon, max_iterations=max_iterations)
-    greedy_policy_scalars = greedy_policy_array(value, GridWorld)
+    #greedy_policy_scalars = greedy_policy_array(value, GridWorld)
     #greedy_policy = array_to_policy(greedy_policy_scalars, GridWorld)
     print('-----------------------------------------------------------------------------')
     print()
@@ -672,10 +887,10 @@ def run_policy_evaluation(use_policy):
     print()
     print()
     print('Final value estimation:')
-    print(value[:GridWorld.max_altitude + 1])
+    print(value[1:])
     print()
-    print('Greedy policy array representation with respect to final value function estimate:')
-    print(greedy_policy_scalars[:GridWorld.max_altitude + 1])
+    #print('Greedy policy array representation with respect to final value function estimate:')
+    #print(greedy_policy_scalars[:GridWorld.max_altitude + 1])
 
 def run_value_iteration(policy, MDP, max_iterations=1000):
     os.system('clear')
@@ -721,6 +936,6 @@ def run_profiler(function):
 
 if __name__ == "__main__":
     os.system('clear')
-    MDP = MarkovGridWorld(grid_size=4)
-    run_policy_iteration(random_walk, MDP, 50, 30)
+    MDP = MarkovGridWorld(grid_size=3, max_altitude=3)
+    run_policy_iteration(random_walk, MDP, 5, 3)
     #run_policy_evaluation(random_walk)
