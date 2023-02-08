@@ -246,26 +246,29 @@ class MarkovGridWorld():
         
         # consider obstacle cases, similar to crashed cases.
         for obstacle in self.obstacles:
-            if np.array_equal(state[1:], obstacle):
+            if np.array_equal(state[2:], obstacle):
                 new_state = self.terminal_state
                 return new_state
         
         # consider landing action.
         # only changes altitude state dimension.
-        if action == 5:
-            new_state = np.array([state[0] + self.max_altitude, state[1], state[2]], dtype='int32')
+        if action == 3:
+            direction = self.action_to_direction[state[1]][0] # going forward when landing, hence 0
+            new_state_2d = np.clip(state[2:] + direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+            new_state = np.array([state[0] + self.max_altitude, state[1], new_state_2d[0], new_state_2d[1]], dtype='int32')
             return new_state
 
         # we're left with the case in flight, with actions being one of (0,1,2,3,4)
         # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
         # and 5% probability for each of the other directions.
-        stochastics = np.ones(len(self.action_space) - 1) * self.prob_other_directions
+        stochastics = np.full(len(self.action_space) - 1, self.prob_other_directions)
         stochastics[action] = self.direction_probability
         effective_action = self.rng.choice(len(self.action_space) - 1, p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
-        effective_direction = self.action_to_direction[effective_action]
-        new_state_2d = np.clip(state[1:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
-        new_state = np.concatenate((np.array([state[0] - 1]), new_state_2d))
+        effective_direction = self.action_to_direction[state[1]][effective_action]
+        new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
+        new_heading = self.direction_to_heading(effective_direction)
+        new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
         
         return new_state
 
