@@ -48,15 +48,14 @@ class MarkovGridWorld():
         # 0: forward
         # 1: right
         # 2: left
-        # 3: land
-        self.action_space = (0, 1, 2, 3)
+        self.action_space = (0, 1, 2)
 
         # discount factor
         self.discount_factor = discount_factor
         
         # terminal state is assigned directly to a crash or right after landing manoeuvre reward has been collected, subsequent rewards are always 0.
         # just a reserved state for representation of episode termination in dynamic programming algorithms.
-        self.terminal_state = np.array([0, 0, 0, 0], dtype='int32')
+        self.terminal_state = np.array([-1, -1, -1, -1], dtype='int32')
 
         # index with heading, THEN index with action.
         self.action_to_direction = {
@@ -71,18 +70,18 @@ class MarkovGridWorld():
 
         self.rng = np.random.default_rng() # construct a default numpy random number Generator class instance, to use in stochastics
         self.direction_probability = direction_probability
-        self.prob_other_directions = (1 - self.direction_probability) / 2 # now divide by 4 because of addition of another 'direction' --> staying put
+        self.prob_other_directions = (1 - self.direction_probability) / 2 # now divide by 2 for other directions
         
         # for ease of iterating over all states, define an explicit list of all states. 
         # len(self.action_to_direction gives number of valid headings.
-        self.state_space = np.zeros(shape=(self.grid_size**2 * ((self.max_altitude * 2) + 1) * len(self.action_to_direction),4), dtype='int32')
+        self.state_space = np.zeros(shape=(self.grid_size**2 * (self.max_altitude + 2) * len(self.action_to_direction),4), dtype='int32')
 
         # 4D array shape to use for value functions, etc.
-        self.problem_shape = (2 * self.max_altitude + 1, len(self.action_to_direction), self.grid_size, self.grid_size)
+        self.problem_shape = (self.max_altitude + 2, len(self.action_to_direction), self.grid_size, self.grid_size)
         
-        state_counter = 0 # start counting at 1 because state indexed by 0 is self.terminal_state, all zeros, already as defined
+        state_counter = 0
 
-        for altitude in range(2 * self.max_altitude, -1, -1):
+        for altitude in range(self.max_altitude, -2, -1):
             for heading in range(len(self.action_to_direction)): # headings from 0 to 3
                 for row in range(self.grid_size):
                     for col in range(self.grid_size):
@@ -98,24 +97,18 @@ class MarkovGridWorld():
     # state differences, only those which are allowed by the MDP dynamics.
     def state_difference_to_action(self, difference, start_state):
         
-        if difference[0] == -1: # normal flight, altitude is decreased by 1.
-            if np.array_equal(difference[2:], np.array([0,0])): # catch cases on the boundary of the grid
-                if difference[1] == 0: # same heading
-                    return 0 # keep going "forward"
-                elif difference[1] == -1 or difference[1] == 3: # at corner, heading difference showing it's a right turn
-                    return 1
-                else:
-                    return 2 # at a corner, heading difference showing it's a left turn
-
+        # the below will become redundant once the dynamics force the agent to turn at corners and boundaries.
+        if np.array_equal(difference[2:], np.array([0,0])): # catch cases on the boundary of the grid
+            if difference[1] == 0: # same heading
+                return 0 # keep going "forward"
+            elif difference[1] == -1 or difference[1] == 3: # at corner, heading difference showing it's a right turn
+                return 1
             else:
-                for action in range(len(self.action_space) - 1):
-                    if np.array_equal(difference[2:], self.action_to_direction[start_state[1]][action]):
-                        return action
-        elif difference[0] == self.max_altitude: # landed
-            return 3
-        # only other possible case is difference[0] == 0 (terminal state transitions). doesn't really matter what the output is in this case.
+                return 2 # at a corner, heading difference showing it's a left turn
         else:
-            return 0
+            for action in range(len(self.action_space) - 1):
+                if np.array_equal(difference[2:], self.action_to_direction[start_state[1]][action]):
+                    return action
 
     def direction_to_heading(self, direction):
         if np.array_equal(direction, [1,0]):
@@ -127,6 +120,8 @@ class MarkovGridWorld():
         if np.array_equal(direction, [0,-1]):
             return 3
 
+    # must redefine the reward to be spread out on the ground.
+    # however, prevent any reward from being there at the obstacles! can't crash into a building at ground level and expect to get any reward!
     def reward(self, state):
         if np.array_equal(self.landing_zone, state[2:]): # agent is over landing zone
             if state[0] > self.max_altitude: # agent has landed
@@ -142,9 +137,7 @@ class MarkovGridWorld():
     # returns the probability of a successor state, given a current state and an action.
     # crucial to define these in this generalised form, in order to implement general policy evaluation algorithm.
     def environment_dynamics(self, successor_state, current_state, action):
-        # first, consider the case where agent has landed or crashed to the ground, or was already in terminal state before.
-        # nowhere to go from terminal state except to the terminal state.
-        if current_state[0] > self.max_altitude or current_state[0] == 0: # agent has landed (> max_altitude), crashed (= 0), or has already been in the terminal state
+        if current_state[0] <= 0: # agent has landed already
             if np.array_equal(successor_state, self.terminal_state):
                 return 1 # can only be taken to terminal_state
             else:
@@ -161,17 +154,6 @@ class MarkovGridWorld():
                     return 1 # can only be taken to terminal_state
                 else:
                     return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
-
-
-        # then, consider the landing action:
-        # successor_state is guaranteed to be same as current_state, but advanced one cell in its heading, and with a 'landed' altitude.
-        if action == 3:
-            landed_state = np.array([current_state[0] + self.max_altitude, current_state[1], 0, 0], dtype='int32') # placeholders at x and y
-            landed_state[2:] = np.clip(current_state[2:] + self.action_to_direction[current_state[1]][0], 0, self.grid_size - 1) # assign 2D component, as in 2D version
-            if np.array_equal(successor_state, landed_state):
-                return 1
-            else:
-                return 0
 
         # consider BOUNDARIES OF DOMAIN. agent was exploting these to just descend vertically, so we need to prevent it from being
         # able to do that. We must force the agent to turn it when it reaches a domain boundary.
@@ -197,18 +179,213 @@ class MarkovGridWorld():
             if current_state[1] == 1: # heading right
                 if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, 1, self.grid_size - 1], dtype='int32')): # turn to global down
                     return 1
-                else: # heading up
+                else:
                     return 0
-            else: # heading left
-                if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, 1, 0], dtype='int32')): # turn to global down
+            else: # heading up
+                if np.array_equal(successor_state, np.array([current_state[0] - 1, 3, 0, self.grid_size - 2], dtype='int32')): # turn to global left
                     return 1
                 else:
                     return 0
         if (current_state[2] == (self.grid_size - 1) and current_state[3] == 0): # bottom-left corner
-            pass
+            if current_state[1] == 0: # heading down
+                if np.array_equal(successor_state, np.array([current_state[0] - 1, 1, self.grid_size - 1, 1], dtype='int32')): # turn to global right
+                    return 1
+                else:
+                    return 0
+            else: # heading left
+                if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, self.grid_size - 2, 0], dtype='int32')): # turn to global up
+                    return 1
+                else:
+                    return 0
         if (current_state[2] == (self.grid_size - 1) and current_state[3] == (self.grid_size - 1)): # bottom-right corner
-            pass
+            if current_state[1] == 0: # heading down
+                if np.array_equal(successor_state, np.array([current_state[0] - 1, 3, self.grid_size - 1, self.grid_size - 2], dtype='int32')): # turn to global left
+                    return 1
+                else:
+                    return 0
+            else: # heading right
+                if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, self.grid_size - 2, self.grid_size - 1], dtype='int32')): # turn to global up
+                    return 1
+                else:
+                    return 0
 
+
+        # Now consider NON-CORNER BOUNDARIES
+        if current_state[2] == 0: # top boundary
+            if current_state[1] == 2: # heading up, must be forced to turn
+                if action == 0: # agent decides to keep going against wall
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 1, 0, current_state[3] + 1], dtype='int32')): # randomly right
+                        return 0.5
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 3, 0, current_state[3] - 1], dtype='int32')): # randomly left
+                        return 0.5
+                    else:
+                        return 0
+            elif current_state[1] == 1: # heading right
+                if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 1, 0, current_state[3] + 1], dtype='int32')): # case where it proceeds
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 0, 1, current_state[3]], dtype='int32')): # case where it gets blown down
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else: # trying to turn away from the wall; return opposite probabilities
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 1, 0, current_state[3] + 1], dtype='int32')): # case where it proceeds
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 0, 1, current_state[3]], dtype='int32')): # case where it gets blown down
+                        return self.direction_probability
+                    else:
+                        return 0
+            elif current_state[1] == 3: # heading left
+                if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 3, 0, current_state[3] - 1], dtype='int32')): # case where it proceeds
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 0, 1, current_state[3]], dtype='int32')): # case where it gets blown down
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else: # trying to turn away from the wall; return opposite probabilities
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 3, 0, current_state[3] - 1], dtype='int32')): # case where it proceeds
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 0, 1, current_state[3]], dtype='int32')): # case where it gets blown down
+                        return self.direction_probability
+                    else:
+                        return 0
+            else: # irrelevant impossible state
+                if np.array_equal(successor_state, self.terminal_state):
+                    return 1
+                else:
+                    return 0
+        if current_state[2] == self.grid_size - 1: # bottom boundary
+            if current_state[1] == 0: # heading down, must be forced to turn
+                if action == 0: # agent decides to keep going against wall
+                    if   np.array_equal(successor_state, np.array([current_state[0] - 1, 1, self.grid_size - 1, current_state[3] + 1], dtype='int32')): # randomly right
+                        return 0.5
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 3, self.grid_size - 1, current_state[3] - 1], dtype='int32')): # randomly left
+                        return 0.5
+                    else:
+                        return 0
+            elif current_state[1] == 1: # heading right
+                if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 1, self.grid_size - 1, current_state[3] + 1], dtype='int32')): # case where it proceeds
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 2, self.grid_size - 2, current_state[3]], dtype='int32')): # case where it gets blown up
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else: # trying to turn away from the wall; return opposite probabilities
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 1, self.grid_size - 1, current_state[3] + 1], dtype='int32')): # case where it proceeds
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 2, self.grid_size - 2, current_state[3]], dtype='int32')): # case where it gets blown up
+                        return self.direction_probability
+                    else:
+                        return 0
+            elif current_state[1] == 3: # heading left
+                if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 3, self.grid_size - 1, current_state[3] - 1], dtype='int32')): # case where it proceeds
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 2, self.grid_size - 2, current_state[3]], dtype='int32')): # case where it gets blown up
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else: # trying to turn away from the wall; return opposite probabilities
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 3, self.grid_size - 1, current_state[3] - 1], dtype='int32')): # case where it proceeds
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 2, self.grid_size - 2, current_state[3]], dtype='int32')): # case where it gets blown up
+                        return self.direction_probability
+                    else:
+                        return 0
+            else:
+                if np.array_equal(successor_state, self.terminal_state):
+                    return 1
+                else:
+                    return 0
+        if current_state[3] == 0: # left boundary
+            if current_state[1] == 3: # heading left, must be forced to turn
+                if action == 0: # agent tries to force straight into wall
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, 0], dtype='int32')): # randomly up
+                        return 0.5
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, 0], dtype='int32')): # randomly down
+                        return 0.5
+                    else:
+                        return 0
+            elif current_state[1] == 1: # heading up
+                if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, current_state[3]], dtype='int32')): # case where it proceeds
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 1, current_state[2], 1], dtype='int32')): # case where it gets blown right
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else: # trying to turn away from the wall; return opposite probabilities
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, current_state[3]], dtype='int32')): # case where it proceeds
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 1, current_state[2], 1], dtype='int32')): # case where it gets blown right
+                        return self.direction_probability
+                    else:
+                        return 0
+            elif current_state[1] == 0: # heading down
+                if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, 0], dtype='int32')): # case where it proceeds
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 1, current_state[2], 1], dtype='int32')): # case where it gets blown right
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else: # trying to turn away from the wall; return opposite probabilities
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, 0], dtype='int32')): # case where it proceeds
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 1, current_state[2], 1], dtype='int32')): # case where it gets blown right
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+            else: # irrelevant impossible state
+                if np.array_equal(successor_state, self.terminal_state):
+                    return 1
+                else:
+                    return 0
+        if current_state[3] == self.grid_size - 1: # right boundary
+            if current_state[1] == 1: # heading right, must be forced to turn
+                if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, self.grid_size - 1], dtype='int32')): # randomly up
+                    return 0.5
+                elif np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, self.grid_size - 1], dtype='int32')): # randomly down
+                    return 0.5
+                else: 
+                    return 0
+            elif current_state[1] == 1: # heading up
+                if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, current_state[3]], dtype='int32')): # case where it proceeds
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 3, current_state[2], current_state[3] - 1], dtype='int32')): # case where it gets blown left
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else: # trying to turn away from the wall; return opposite probabilities
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, current_state[3]], dtype='int32')): # case where it proceeds
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 3, current_state[2], current_state[3] - 1], dtype='int32')): # case where it gets blown left
+                        return self.direction_probability
+                    else:
+                        return 0
+            elif current_state[1] == 0: # heading down
+                if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, current_state[3]], dtype='int32')): # case where it proceeds
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 3, current_state[2], current_state[3] - 1], dtype='int32')): # case where it gets blown left
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else: # trying to turn away from the wall; return opposite probabilities
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, current_state[3]], dtype='int32')): # case where it proceeds
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 3, current_state[2], current_state[3] - 1], dtype='int32')): # case where it gets blown left
+                        return self.direction_probability
+                    else:
+                        return 0
+            else: # impossible useless situation
+                if np.array_equal(successor_state, self.terminal_state):
+                    return 1
+                else:
+                    return 0
 
         # Now, consider the most common case - normal descending flight.
         # The stochastics array describes the probability, given an action from (0,1,2), of the result corresponding to what we'd expect from each of those actions
