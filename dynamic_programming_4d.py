@@ -1,6 +1,8 @@
 import os
 import time
 import numpy as np
+from scipy.spatial.distance import cityblock
+from scipy.stats import norm
 
 # for generality we're defining the policy as being a function of an action and a current state
 def random_walk(action, state):
@@ -52,6 +54,10 @@ class MarkovGridWorld():
 
         # discount factor
         self.discount_factor = discount_factor
+
+        # define normal distribution of reward.
+        # using a standard normal pdf
+        self.reward_dist = norm()
         
         # terminal state is assigned directly to a crash or right after landing manoeuvre reward has been collected, subsequent rewards are always 0.
         # just a reserved state for representation of episode termination in dynamic programming algorithms.
@@ -127,22 +133,14 @@ class MarkovGridWorld():
     # must redefine the reward to be spread out on the ground.
     # however, prevent any reward from being there at the obstacles! can't crash into a building at ground level and expect to get any reward!
     def reward(self, state):
-        if state[2] == self.landing_zone[0] and state[3] == self.landing_zone[1] and state[0] == 0:
-            return 100
+        if state[0] == 0:
+            for obstacle in self.obstacles:
+                if np.array_equal(state[2:], obstacle):
+                    return 0
+            manhattan_distance = cityblock(state[2:], self.landing_zone)
+            return norm.pdf(manhattan_distance) / norm.pdf(0) # normalise against the max reward available
         else:
             return 0
-        """
-        if np.array_equal(self.landing_zone, state[2:]): # agent is over landing zone
-            if state[0] > self.max_altitude: # agent has landed
-                if state[0] < (2 * self.max_altitude): # condition just in case altitude of landing was max altitude, which would break use of modulo below (divide by 0 error)
-                    return 100 / (state[0] % self.max_altitude) # reward is larger the closer agent was to ground when it performed landing
-                else: 
-                    return 100 / self.max_altitude
-            else:
-                return 0
-        else:
-            return 0
-        """
 
     # returns the probability of a successor state, given a current state and an action.
     # crucial to define these in this generalised form, in order to implement general policy evaluation algorithm.
@@ -477,6 +475,8 @@ class MarkovGridWorld():
                 return new_state
         
 
+        stochastics = np.full(len(self.action_space), self.prob_other_directions)
+        stochastics[action] = self.direction_probability
         # now consider NON-CORNER BOUNDARIES
         if state[2] == 0: # top boundary
             if state[1] == 2: # heading up, must be forced to turn
@@ -488,6 +488,10 @@ class MarkovGridWorld():
                     new_heading = self.direction_to_heading(effective_direction)
                     new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
                     return new_state
+                elif action == 1: # even if not trying to force into wall, we must take care not to let wind do it in the "standard case"
+                    stochastics = np.array([0, self.direction_probability, 1 - self.direction_probability])
+                else:
+                    stochastics = np.array([0, 1 - self.direction_probability, self.direction_probability])
             elif state[1] == 1: # heading right
                 if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
                     stochastics = np.array([self.direction_probability, 1 - self.direction_probability, 0])
@@ -532,6 +536,10 @@ class MarkovGridWorld():
                     new_heading = self.direction_to_heading(effective_direction)
                     new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
                     return new_state
+                elif action == 1: # even if not trying to force into wall, we must take care not to let wind do it in the "standard case"
+                    stochastics = np.array([0, self.direction_probability, 1 - self.direction_probability])
+                else:
+                    stochastics = np.array([0, 1 - self.direction_probability, self.direction_probability])
             elif state[1] == 1: # heading right
                 if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
                     stochastics = np.array([self.direction_probability, 0, 1 - self.direction_probability])
@@ -576,6 +584,10 @@ class MarkovGridWorld():
                     new_heading = self.direction_to_heading(effective_direction)
                     new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
                     return new_state
+                elif action == 1: # even if not trying to force into wall, we must take care not to let wind do it in the "standard case"
+                    stochastics = np.array([0, self.direction_probability, 1 - self.direction_probability])
+                else:
+                    stochastics = np.array([0, 1 - self.direction_probability, self.direction_probability])
             elif state[1] == 0: # heading down
                 if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
                     stochastics = np.array([self.direction_probability, 0, 1 - self.direction_probability])
@@ -620,6 +632,10 @@ class MarkovGridWorld():
                     new_heading = self.direction_to_heading(effective_direction)
                     new_state = np.concatenate((np.array([state[0] - 1], ndmin=1), np.array(new_heading, ndmin=1), new_state_2d))
                     return new_state
+                elif action == 1: # even if not trying to force into wall, we must take care not to let wind do it in the "standard case"
+                    stochastics = np.array([0, self.direction_probability, 1 - self.direction_probability])
+                else:
+                    stochastics = np.array([0, 1 - self.direction_probability, self.direction_probability])
             elif state[1] == 0: # heading down
                 if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
                     stochastics = np.array([self.direction_probability, 1 - self.direction_probability, 0])
@@ -656,8 +672,6 @@ class MarkovGridWorld():
                     return new_state
 
         # finally we consider a normal case not on the boundaries of the problem
-        stochastics = np.full(len(self.action_space), self.prob_other_directions)
-        stochastics[action] = self.direction_probability
         effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
         effective_direction = self.action_to_direction[state[1]][effective_action]
         new_state_2d = np.clip(state[2:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
