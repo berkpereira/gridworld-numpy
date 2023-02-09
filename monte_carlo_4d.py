@@ -5,6 +5,9 @@ import os
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.path as path
+
+
 
 
 # we will always begin episodes from max altitude, because we might as well and we thus cover
@@ -76,6 +79,10 @@ def play_episode(MDP, policy, history):
     ax.grid()
     marker_size = 400
 
+    marker_vertices = np.array([[0.5,0], [0.5,0.3], [0.1,0.3], [0.1, 1], [1.5, 1], [1.5,1.2], [0.1, 1.2], [0.05, 1.6], [-0.05, 1.6], [-0.1, 1.2], [-1.5, 1.2], [-1.5, 1], [-0.1, 1], [-0.1, 0.3], [-0.5, 0.3], [-0.5, 0]])
+    marker_codes = np.array([])
+    aircraft_marker = path.Path(vertices=marker_vertices)
+
     def animate(i):
         if i == 0:
             ax.clear()
@@ -99,18 +106,19 @@ def play_episode(MDP, policy, history):
                 z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
 
                 ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="h", c='black', s=marker_size*2, alpha=0.1)
+            
+            # also visualise landing zone
+            ax.scatter(MDP.landing_zone[0], MDP.landing_zone[1], 0, marker='o', c='yellow', s=marker_size)
 
         if history[i][0] == 0:
-            return ax.scatter(history[i][2], history[i][3], 0, marker="x", c='red', s=marker_size, alpha=1),
+            if np.array_equal(history[i][2:4], MDP.landing_zone):
+                return ax.scatter(history[i][2], history[i][3], 0, marker=aircraft_marker, c='green', s=marker_size*1.5, alpha=1),
+            else:
+                return ax.scatter(history[i][2], history[i][3], 0, marker="x", c='red', s=marker_size, alpha=1),
         for obstacle in MDP.obstacles:
             if np.array_equal(history[i][2:4], obstacle):
                 return ax.scatter(history[i][2], history[i][3], history[i][0], marker="x", c='red', s=marker_size, alpha=1),
-        if history[i][0] > MDP.max_altitude:
-            if np.array_equal(history[i][2:4], MDP.landing_zone):
-                return ax.scatter(history[i][2], history[i][3], 0, marker="h", c='green', s=marker_size, alpha=1),
-            else:
-                return ax.scatter(history[i][2], history[i][3], 0, marker="h", c='red', s=marker_size, alpha=1),
-        return ax.scatter(history[i][2], history[i][3], history[i][0], marker="P",  c='blue', s=marker_size, alpha=1),
+        return ax.scatter(history[i][2], history[i][3], history[i][0], marker=aircraft_marker,  c='blue', s=marker_size*1.5, alpha=1),
 
 
     ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=300, repeat=False)
@@ -144,6 +152,6 @@ def run_random_then_optimal(MDP, policy, no_episodes):
 
 
 if __name__ == '__main__':
-    buildings = np.array([[0,0]], ndmin=2, dtype='int32')
-    MDP = MarkovGridWorld(grid_size = 4, max_altitude=10, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=1)
+    buildings = np.array([[0,0], [1,1], [4,2]], ndmin=2, dtype='int32')
+    MDP = MarkovGridWorld(grid_size = 5, max_altitude=12, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=1)
     run_random_then_optimal(MDP, random_walk, no_episodes=5)
