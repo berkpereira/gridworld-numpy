@@ -228,6 +228,20 @@ class MarkovGridWorld():
                         return 0.5
                     else:
                         return 0
+                elif action == 1: # even if not trying to force into wall, we must take care not to let wind do it in the "standard case"
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 1, 0, current_state[3] + 1], dtype='int32')):
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 3, 0, current_state[3] - 1], dtype='int32')):
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else:
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 1, 0, current_state[3] + 1], dtype='int32')):
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 3, 0, current_state[3] - 1], dtype='int32')):
+                        return self.direction_probability
+                    else:
+                        return 0
             elif current_state[1] == 1: # heading right
                 if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
                     if np.array_equal(successor_state, np.array([current_state[0] - 1, 1, 0, current_state[3] + 1], dtype='int32')): # case where it proceeds
@@ -266,10 +280,24 @@ class MarkovGridWorld():
         if current_state[2] == self.grid_size - 1: # bottom boundary
             if current_state[1] == 0: # heading down, must be forced to turn
                 if action == 0: # agent decides to keep going against wall
-                    if   np.array_equal(successor_state, np.array([current_state[0] - 1, 1, self.grid_size - 1, current_state[3] + 1], dtype='int32')): # randomly right
+                    if   np.array_equal(successor_state, np.array([current_state[0] - 1, 1, self.grid_size - 1, current_state[3] + 1], dtype='int32')): # randomly global right
                         return 0.5
-                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 3, self.grid_size - 1, current_state[3] - 1], dtype='int32')): # randomly left
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 3, self.grid_size - 1, current_state[3] - 1], dtype='int32')): # randomly global left
                         return 0.5
+                    else:
+                        return 0
+                elif action == 1: # even if not trying to force into wall, we must take care not to let wind do it in the "standard case"
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 3, self.grid_size - 1, current_state[3] - 1], dtype='int32')):
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 1, self.grid_size - 1, current_state[3] + 1], dtype='int32')):
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else:
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 3, self.grid_size - 1, current_state[3] - 1], dtype='int32')):
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 1, self.grid_size - 1, current_state[3] + 1], dtype='int32')):
+                        return self.direction_probability
                     else:
                         return 0
             elif current_state[1] == 1: # heading right
@@ -316,6 +344,20 @@ class MarkovGridWorld():
                         return 0.5
                     else:
                         return 0
+                elif action == 1: # even if not trying to force into wall, we must take care not to let wind do it in the "standard case"
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, 0], dtype='int32')):
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, 0], dtype='int32')):
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else:
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, 0], dtype='int32')):
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, 0], dtype='int32')):
+                        return self.direction_probability
+                    else:
+                        return 0
             elif current_state[1] == 1: # heading up
                 if action == 0 or action == 2: # just proceeding OR trying to force into wall: same result.
                     if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, current_state[3]], dtype='int32')): # case where it proceeds
@@ -353,12 +395,27 @@ class MarkovGridWorld():
                     return 0
         if current_state[3] == self.grid_size - 1: # right boundary
             if current_state[1] == 1: # heading right, must be forced to turn
-                if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, self.grid_size - 1], dtype='int32')): # randomly up
-                    return 0.5
-                elif np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, self.grid_size - 1], dtype='int32')): # randomly down
-                    return 0.5
-                else: 
-                    return 0
+                if action == 0:
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, self.grid_size - 1], dtype='int32')): # randomly up
+                        return 0.5
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, self.grid_size - 1], dtype='int32')): # randomly down
+                        return 0.5
+                    else: 
+                        return 0
+                elif action == 1: # even if not trying to force into wall, we must take care not to let wind do it in the "standard case"
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, self.grid_size - 1], dtype='int32')):
+                        return self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, self.grid_size - 1], dtype='int32')):
+                        return 1 - self.direction_probability
+                    else:
+                        return 0
+                else:
+                    if np.array_equal(successor_state, np.array([current_state[0] - 1, 0, current_state[2] + 1, self.grid_size - 1], dtype='int32')):
+                        return 1 - self.direction_probability
+                    elif np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, self.grid_size - 1], dtype='int32')):
+                        return self.direction_probability
+                    else:
+                        return 0
             elif current_state[1] == 1: # heading up
                 if action == 0 or action == 1: # just proceeding OR trying to force into wall: same result.
                     if np.array_equal(successor_state, np.array([current_state[0] - 1, 2, current_state[2] - 1, current_state[3]], dtype='int32')): # case where it proceeds
