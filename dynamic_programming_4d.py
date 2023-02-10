@@ -963,28 +963,30 @@ def run_policy_evaluation(use_policy):
     #print('Greedy policy array representation with respect to final value function estimate:')
     #print(greedy_policy_scalars[:GridWorld.max_altitude + 1])
 
-def run_value_iteration(policy, MDP, max_iterations=1000):
+def run_value_iteration(policy, MDP, print_bool, max_iterations=1000):
     os.system('clear')
 
-    print('-----------------------------------------------------------------------------')
-    print('Running value iteration.')
-    print(f'Grid size: {MDP.grid_size}')
-    print(f'Max altitude: {MDP.max_altitude}')
-    print(f'Terminal state: {MDP.terminal_state}')
-    print(f'Discount factor: {MDP.discount_factor}')
-    print(f'Probability of action resulting in intended direction of motion: {MDP.direction_probability}')
-    print(f'Max iterations: {max_iterations}')
-    print(f'Policy: {policy}')
-    print('-----------------------------------------------------------------------------')
-    input('Press Enter to continue...')
-    print()
+    if print_bool:
+        print('-----------------------------------------------------------------------------')
+        print('Running value iteration.')
+        print(f'Grid size: {MDP.grid_size}')
+        print(f'Max altitude: {MDP.max_altitude}')
+        print(f'Terminal state: {MDP.terminal_state}')
+        print(f'Discount factor: {MDP.discount_factor}')
+        print(f'Probability of action resulting in intended direction of motion: {MDP.direction_probability}')
+        print(f'Max iterations: {max_iterations}')
+        print(f'Policy: {policy}')
+        print('-----------------------------------------------------------------------------')
+        input('Press Enter to continue...')
+        print()
 
 
     st = time.time()
     optimal_policy, optimal_policy_array = value_iteration(policy, MDP, max_iterations=max_iterations)
     et = time.time()
     elapsed_time = et - st
-    print(f'Elapsed time: {elapsed_time} seconds')
+    if print_bool:
+        print(f'Elapsed time: {elapsed_time} seconds')
 
 def run_policy_iteration(policy, MDP, max_evaluation_iterations, max_improvement_iterations):
     policy_iteration(policy, MDP, max_evaluation_iterations, max_improvement_iterations)
