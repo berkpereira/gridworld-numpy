@@ -68,6 +68,8 @@ def sample_policy(MDP, policy, state):
     stochastics = np.zeros(len(MDP.action_space))
     for action in MDP.action_space:
         stochastics[action] = policy(action, state)
+    if policy.__name__ == "epsilon_greedy_policy":
+        pass
     sampled_action = rng.choice(len(MDP.action_space), p=stochastics)
     return sampled_action
 
@@ -157,13 +159,13 @@ def run_random_then_optimal(MDP, policy, no_episodes):
 
 # first-visit Monte Carlo.
 # this implementation ASSUMES DISCOUNT FACTOR = 1
-def monte_carlo_policy_evaluation(MDP, policy, max_iterations):
+def monte_carlo_policy_evaluation(MDP, policy, no_episodes):
     # we will use this array to count how many visits each state has had, so that we can then average the returns per state visit
     state_visits = np.zeros(shape=MDP.problem_shape)
     # we will use this array to accumulate the return observed
     cumulative_return = np.zeros(shape=MDP.problem_shape)
 
-    for _ in range(max_iterations):
+    for _ in range(no_episodes):
         episode = generate_episode(MDP, policy)
         
         # ASSUMING A DISCOUNT FACTOR OF 1, WE CAN SAY:
@@ -177,22 +179,71 @@ def monte_carlo_policy_evaluation(MDP, policy, max_iterations):
     value_estimate = np.divide(cumulative_return, state_visits, out=np.zeros_like(cumulative_return), where=state_visits!=0)
     return value_estimate
 
+# generates exploratory policy
+def monte_carlo_array_to_policy(policy_array, MDP, epsilon):
+    # 5D array used
+    # 2nd, 3rd, 4th and 5th indices correspond to dimensions of the state space.
+    # 1st index corresponds to action number.
+    state_action_probabilities = np.zeros(shape = (len(MDP.action_space), MDP.problem_shape[0], MDP.problem_shape[1], MDP.problem_shape[2], MDP.problem_shape[3]))
+    for index in np.ndindex(MDP.problem_shape[0], MDP.problem_shape[1], MDP.problem_shape[2], MDP.problem_shape[3]):
+        state_action_probabilities[:,index[0], index[1], index[2], index[3]] = np.full(len(MDP.action_space), fill_value=epsilon / len(MDP.action_space))
+        
+        # overwrite the previous for the greedy action.
+        greedy_action = policy_array[index]
+        state_action_probabilities[(greedy_action,) + index] = 1 - epsilon + (epsilon / len(MDP.action_space)) # exploratory epsilon-greedy policy: keep exploring
+    
+    # policy function itself just has to index the 3D array we've created, which contains all the policy-defining information
+    def policy(action, state):
+        return state_action_probabilities[(action,) + tuple(state)]
+    
+    # return policy function
+    return policy
+
+def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no_episodes=50, improvement_max_iterations=50):
+    iteration_count = 1
+    policy_is_stable = False
+    current_policy = policy
+    current_policy_array = np.ones(shape=MDP.problem_shape, dtype='int32') * -10 # initialise greedy policy array to a bogus instance
+    while policy_is_stable is False and iteration_count <= improvement_max_iterations:
+        # as per Sutton Barto 2nd, chapter 4.3, next iteration is better-converging if we
+        # start with the previous value estimate, hence the assignment into initial_value
+        print(f'Iteration number: {iteration_count}')
+        print(f'Terminal state: {MDP.terminal_state}')
+        print('Current greedy policy array (disregard in iteration no. 1):')
+        print(current_policy_array)
+        print()
+
+        initial_value = monte_carlo_policy_evaluation(MDP, current_policy, no_episodes=evaluation_no_episodes)
+        print('Previous policy evaluation:')
+        print(initial_value)
+        new_policy_array = greedy_policy_array(initial_value, MDP)
+        
+        if np.array_equal(new_policy_array, current_policy_array):
+            policy_is_stable = True
+            print('Policy has stabilised.')
+            print()
+            break # stop iterating
+
+        current_policy_array = new_policy_array
+        current_policy = monte_carlo_array_to_policy(new_policy_array, MDP, epsilon=exploration_epsilon)
+        iteration_count += 1
+    
+    print('Final policy array:')
+    print(current_policy_array)
+    print()
+    # in the end, best to return a DETERMINISTIC VERSION OF THE POLICY
+    final_policy = array_to_policy(current_policy_array, MDP)
+    return final_policy, current_policy_array
+
 
 if __name__ == '__main__':
     os.system('clear')
-    buildings = np.array([[]], ndmin=2, dtype='int32')
-    MDP = MarkovGridWorld(grid_size = 3, max_altitude=3, obstacles = buildings, landing_zone = np.array([0,0], dtype='int32'), direction_probability=1)
-    value_estimate = monte_carlo_policy_evaluation(MDP, random_walk, 50000)
-    value_real = policy_evaluation(random_walk, MDP, initial_value=np.zeros(shape=MDP.problem_shape), epsilon=0, max_iterations=100000)
-    print(value_estimate)
-    print()
-    print()
-    print()
-    print()
-    print(value_real)
-    print()
-    print()
-    print()
-    print()
-    print('Difference:')
-    print(np.subtract(value_estimate, value_real))
+    buildings = np.array([[1,1], [3,2], [4,1]], ndmin=2, dtype='int32')
+    MDP = MarkovGridWorld(grid_size = 6, max_altitude=6, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=1)
+    no_episodes = len(MDP.state_space) * 2
+    no_steps = len(MDP.state_space) / 20
+    print(no_episodes)
+    print(no_steps)
+    simulate_policy(MDP, random_walk, 5)
+    new_policy, new_policy_array = monte_carlo_policy_iteration(random_walk, MDP, 0.2, no_episodes, no_steps)
+    simulate_policy(MDP, new_policy, 10)
