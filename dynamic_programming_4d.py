@@ -774,7 +774,7 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
                     # in the below line, I changed (as of 25/01/2023) what was MDP.reward(successor) to MDP.reward(state)
                     # this made the algorithms work towards optimal policies for the problem as of 25/01/2023, but change back if needed.
                     # SEE for-meeting14.md in UoB repo FOR DETAILS
-                    sub_sum += MDP.environment_dynamics(successor, state, action) * (MDP.reward(successor) + MDP.discount_factor * current_value[tuple(successor)])
+                    sub_sum += MDP.environment_dynamics(successor, state, action) * (MDP.reward(state) + MDP.discount_factor * current_value[tuple(successor)])
                 current_value_update += policy(action,state) * sub_sum
             current_value[tuple(state)] = current_value_update
             change[tuple(state)] = abs(current_value[tuple(state)] - old_state_value)
