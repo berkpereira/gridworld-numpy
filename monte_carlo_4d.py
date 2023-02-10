@@ -6,8 +6,14 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.path as path
+from scipy.spatial.distance import cityblock
 
 
+def forward_policy(action, state):
+    if action == 0:
+        return 1
+    else:
+        return 0
 
 
 # we will always begin episodes from max altitude, because we might as well and we thus cover
@@ -27,7 +33,7 @@ def generate_episode(MDP, policy):
     # if we've accidentally picked an obstacle state to begin with, pick again until that's not the case.
     picked_obstacle = True
     while picked_obstacle is True:
-        current_state = MDP.state_space[np.random.choice(np.arange(first_state_max_alt, first_state_max_alt + MDP.grid_size**2))]
+        current_state = MDP.state_space[np.random.choice(np.arange(first_state_max_alt, first_state_max_alt + 4 * MDP.grid_size**2))]
         
         picked_obstacle = False
         for obstacle in MDP.obstacles:
@@ -35,8 +41,6 @@ def generate_episode(MDP, policy):
                 picked_obstacle = True
                 break
                 
-
-    
     # initialise index which we will use to fill the rows of the history matrix
     time_level = 0
 
@@ -58,11 +62,6 @@ def truncate_terminal(MDP, history):
     for row in range(history.shape[0]):
         if np.array_equal(history[row][:4], MDP.terminal_state):
             return history[:row]
-            #if np.array_equal(history[row - 1][:4], np.array([1,0,0])):
-            #    return history[:row+1]
-            #else:
-            #    return history[:row]
-
 
 def sample_policy(MDP, policy, state):
     rng = np.random.default_rng()
@@ -79,8 +78,9 @@ def play_episode(MDP, policy, history):
     ax.grid()
     marker_size = 400
 
-    marker_vertices = np.array([[0.5,0], [0.5,0.3], [0.1,0.3], [0.1, 1], [1.5, 1], [1.5,1.2], [0.1, 1.2], [0.05, 1.6], [-0.05, 1.6], [-0.1, 1.2], [-1.5, 1.2], [-1.5, 1], [-0.1, 1], [-0.1, 0.3], [-0.5, 0.3], [-0.5, 0]])
-    marker_codes = np.array([])
+    taper_offset = 0.3
+    semi_span = 1.3
+    marker_vertices = np.array([[0.5,0], [0.5,0.3], [0.1,0.3], [0.1, 1], [semi_span, 1 - taper_offset], [semi_span,1.2 - taper_offset], [0.1, 1.2], [0.05, 1.6], [-0.05, 1.6], [-0.1, 1.2], [-semi_span, 1.2 - taper_offset], [-semi_span, 1 - taper_offset], [-0.1, 1], [-0.1, 0.3], [-0.5, 0.3], [-0.5, 0]])
     aircraft_marker = path.Path(vertices=marker_vertices)
 
     def animate(i):
@@ -99,26 +99,30 @@ def play_episode(MDP, policy, history):
             
             # plot obstacle as a sort of building up to MDP.max_altitude.
             # need to make this proper, just a crappy demo as it stands.
-            for obstacle in MDP.obstacles:
-                no_points = 50
-                x_obstacle = np.full((no_points, 1), obstacle[0])
-                y_obstacle = np.full((no_points, 1), obstacle[1])
-                z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
+            if MDP.obstacles.size != 0:
+                for obstacle in MDP.obstacles:
+                    no_points = 50
+                    x_obstacle = np.full((no_points, 1), obstacle[0])
+                    y_obstacle = np.full((no_points, 1), obstacle[1])
+                    z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
 
-                ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="h", c='black', s=marker_size*2, alpha=0.1)
+                    ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="h", c='black', s=marker_size*2, alpha=0.1)
             
             # also visualise landing zone
-            ax.scatter(MDP.landing_zone[0], MDP.landing_zone[1], 0, marker='o', c='yellow', s=marker_size)
+            ax.scatter(MDP.landing_zone[0], MDP.landing_zone[1], 0, marker='o', c='purple', s=marker_size)
 
-        if history[i][0] == 0:
-            if np.array_equal(history[i][2:4], MDP.landing_zone):
-                return ax.scatter(history[i][2], history[i][3], 0, marker=aircraft_marker, c='green', s=marker_size*1.5, alpha=1),
-            else:
-                return ax.scatter(history[i][2], history[i][3], 0, marker="x", c='red', s=marker_size, alpha=1),
         for obstacle in MDP.obstacles:
             if np.array_equal(history[i][2:4], obstacle):
+                ax.plot(history[:,2],history[:,3],history[:,0], 'r-.') # trajectory
                 return ax.scatter(history[i][2], history[i][3], history[i][0], marker="x", c='red', s=marker_size, alpha=1),
-        return ax.scatter(history[i][2], history[i][3], history[i][0], marker=aircraft_marker,  c='blue', s=marker_size*1.5, alpha=1),
+        
+        # landed, not obstacle because already checked.
+        if history[i][0] == 0:
+            normalised_manhattan = cityblock(history[i][2:4], MDP.landing_zone) / ((MDP.grid_size - 1) * 2)
+            ax.plot(history[:,2],history[:,3],history[:,0], '-.', color=plt.cm.winter(1 - normalised_manhattan)) # trajectory
+            return ax.scatter(history[i][2], history[i][3], 0, marker=aircraft_marker, color=plt.cm.winter(1 - normalised_manhattan), s=marker_size*1.5, alpha=1),
+        return ax.scatter(history[i][2], history[i][3], history[i][0], marker=aircraft_marker,  c='brown', s=marker_size*1.5, alpha=1),
+
 
 
     ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=300, repeat=False)
@@ -126,6 +130,7 @@ def play_episode(MDP, policy, history):
 
 def simulate_policy(MDP, policy, no_episodes=5):
     print(f'Generating episodes with policy: {policy.__name__}')
+    #os.system(f'say "Generating episodes with policy: {policy.__name__}"')
     input('Press Enter to continue...')
     print()
     for i in range(no_episodes):
@@ -144,14 +149,50 @@ def run_random_then_optimal(MDP, policy, no_episodes):
     print()
     print()
     print('Now running value iteration to converge on an optimal policy!')
+    #os.system('say "Now running value iteration to converge on an optimal policy!"')
     input('Press Enter to continue...')
-    optimal_policy, optimal_policy_array = policy_iteration(policy, MDP, 50, 50)
+    optimal_policy, optimal_policy_array = policy_iteration(policy, MDP, 10, 1000)
     optimal_policy.__name__ = 'optimal_policy'
     simulate_policy(MDP, optimal_policy, no_episodes)
 
+# first-visit Monte Carlo.
+# this implementation ASSUMES DISCOUNT FACTOR = 1
+def monte_carlo_policy_evaluation(MDP, policy, max_iterations):
+    # we will use this array to count how many visits each state has had, so that we can then average the returns per state visit
+    state_visits = np.zeros(shape=MDP.problem_shape)
+    # we will use this array to accumulate the return observed
+    cumulative_return = np.zeros(shape=MDP.problem_shape)
+
+    for _ in range(max_iterations):
+        episode = generate_episode(MDP, policy)
+        
+        # ASSUMING A DISCOUNT FACTOR OF 1, WE CAN SAY:
+        observed_return = episode[-1][-1]
+        
+        for step in episode:
+            state = step[:-1].astype('int32') # discard the last column, which is the reward
+            state_visits[tuple(state)] += 1
+            cumulative_return[tuple(state)] += observed_return
+    
+    value_estimate = np.divide(cumulative_return, state_visits, out=np.zeros_like(cumulative_return), where=state_visits!=0)
+    return value_estimate
 
 
 if __name__ == '__main__':
-    buildings = np.array([[0,0], [1,1], [4,2]], ndmin=2, dtype='int32')
-    MDP = MarkovGridWorld(grid_size = 5, max_altitude=12, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=1)
-    run_random_then_optimal(MDP, random_walk, no_episodes=5)
+    os.system('clear')
+    buildings = np.array([[]], ndmin=2, dtype='int32')
+    MDP = MarkovGridWorld(grid_size = 3, max_altitude=3, obstacles = buildings, landing_zone = np.array([0,0], dtype='int32'), direction_probability=1)
+    value_estimate = monte_carlo_policy_evaluation(MDP, random_walk, 50000)
+    value_real = policy_evaluation(random_walk, MDP, initial_value=np.zeros(shape=MDP.problem_shape), epsilon=0, max_iterations=100000)
+    print(value_estimate)
+    print()
+    print()
+    print()
+    print()
+    print(value_real)
+    print()
+    print()
+    print()
+    print()
+    print('Difference:')
+    print(np.subtract(value_estimate, value_real))
