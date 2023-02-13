@@ -80,6 +80,7 @@ def play_episode(MDP, policy, history):
     ax.grid()
     marker_size = 400
 
+    # create aeroplane-shaped marker
     taper_offset = 0.3
     semi_span = 1.3
     marker_vertices = np.array([[0.5,0], [0.5,0.3], [0.1,0.3], [0.1, 1], [semi_span, 1 - taper_offset], [semi_span,1.2 - taper_offset], [0.1, 1.2], [0.05, 1.6], [-0.05, 1.6], [-0.1, 1.2], [-semi_span, 1.2 - taper_offset], [-semi_span, 1 - taper_offset], [-0.1, 1], [-0.1, 0.3], [-0.5, 0.3], [-0.5, 0]])
@@ -103,7 +104,7 @@ def play_episode(MDP, policy, history):
             # need to make this proper, just a crappy demo as it stands.
             if MDP.obstacles.size != 0:
                 for obstacle in MDP.obstacles:
-                    no_points = 50
+                    no_points = 30
                     x_obstacle = np.full((no_points, 1), obstacle[0])
                     y_obstacle = np.full((no_points, 1), obstacle[1])
                     z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
@@ -123,6 +124,7 @@ def play_episode(MDP, policy, history):
             normalised_manhattan = cityblock(history[i][2:4], MDP.landing_zone) / ((MDP.grid_size - 1) * 2)
             ax.plot(history[:,2],history[:,3],history[:,0], '-.', color=plt.cm.winter(1 - normalised_manhattan)) # trajectory
             return ax.scatter(history[i][2], history[i][3], 0, marker=aircraft_marker, color=plt.cm.winter(1 - normalised_manhattan), s=marker_size*1.5, alpha=1),
+        
         return ax.scatter(history[i][2], history[i][3], history[i][0], marker=aircraft_marker,  c='brown', s=marker_size*1.5, alpha=1),
 
 
@@ -239,11 +241,12 @@ def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no
 if __name__ == '__main__':
     os.system('clear')
     buildings = np.array([[1,1], [3,2], [4,1]], ndmin=2, dtype='int32')
-    MDP = MarkovGridWorld(grid_size = 6, max_altitude=6, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=1)
-    no_episodes = len(MDP.state_space) * 2
-    no_steps = len(MDP.state_space) / 20
-    print(no_episodes)
-    print(no_steps)
+    MDP = MarkovGridWorld(grid_size = 6, max_altitude=6, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=0.90)
+    no_episodes = int(np.floor(len(MDP.state_space) / 2))
+    no_steps = int(np.floor(len(MDP.state_space) / 40))
+    print(f'Monte Carlo, number of episodes per improvement: {no_episodes}')
+    print(f'Monte Carlo, number of improvement steps: {no_steps}')
+    print()
     simulate_policy(MDP, random_walk, 5)
     new_policy, new_policy_array = monte_carlo_policy_iteration(random_walk, MDP, 0.2, no_episodes, no_steps)
     simulate_policy(MDP, new_policy, 10)
