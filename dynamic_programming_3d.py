@@ -1,10 +1,12 @@
 import os
 import time
 import numpy as np
+from scipy.spatial.distance import cityblock
+from scipy.stats import norm
 
 # for generality we're defining the policy as being a function of an action and a current state
 def random_walk(action, state):
-    return 1/6
+    return 1/5
 
 # just lands!
 def land_policy(action, state):
@@ -68,13 +70,20 @@ class MarkovGridWorld():
         else:
             self.max_altitude = max_altitude
         
-        # action 5 corresponds to landing manoeuvre
-        self.action_space = (0, 1, 2, 3, 4, 5)
+        # removed landing manoeuvre
+        self.action_space = (0, 1, 2, 3, 4)
         self.discount_factor = discount_factor
+
+        # define normal distribution of reward.
+        # using a standard normal pdf
+        self.reward_dist = norm()
+
+        # 4D array shape to use for value functions, etc.
+        self.problem_shape = (self.max_altitude + 2, self.grid_size, self.grid_size)
         
         # terminal state is assigned directly to a crash or right after landing manoeuvre reward has been collected, subsequent rewards are always 0 
         # just a reserved state for representation of episode termination in dynamic programming algorithms
-        self.terminal_state = np.array([0, 0, 0], dtype='int32')
+        self.terminal_state = np.array([-1, -1, -1], dtype='int32')
         self.action_to_direction = {
             0: np.array([0, 0], dtype='int32'), # stay
             1: np.array([1, 0], dtype='int32'), # down
@@ -89,7 +98,7 @@ class MarkovGridWorld():
         self.state_space = np.zeros(shape=(self.grid_size**2 * ((self.max_altitude * 2) + 1),3), dtype='int32')
         state_counter = 0 # start counting at 1 because state indexed by 0 is self.terminal_state, all zeros, already as defined
         
-        for altitude in range(2 * self.max_altitude, -1, -1):
+        for altitude in range(self.max_altitude, -2, -1):
             for row in range(self.grid_size):
                 for col in range(self.grid_size):
                     # 0 < altitude <= self.max_altitude means in-flight
@@ -100,25 +109,23 @@ class MarkovGridWorld():
                     state_counter += 1
 
     # this method is now extended to 3D
-    def state_difference_to_action(self, difference):
+    def state_difference_to_action(self, difference, current_state):
+        if current_state[0] == 0:
+            return 0
         if difference[0] == -1: # normal flight, altitude is decreased by 1
-            for action in range(5):
+            for action in range(len(self.action_space)):
                 if np.array_equal(difference[1:], self.action_to_direction[action]):
                     return action
-        elif difference[0] == self.max_altitude: # landed
-            return 5
         else: # only other possible case is difference[0] == 0 (terminal state transitions). doesn't really matter what the output is in this case.
             return 0
 
     def reward(self, state):
-        if np.array_equal(self.landing_zone, state[1:]): # agent is over landing zone
-            if state[0] > self.max_altitude: # agent has landed
-                if state[0] < (2 * self.max_altitude): # condition just in case altitude of landing was max altitude, which would break use of modulo below (divide by 0 error)
-                    return 100 / (state[0] % self.max_altitude) # reward is larger the closer agent was to ground when it performed landing
-                else: 
-                    return 100 / self.max_altitude
-            else:
-                return 0
+        if state[0] == 0:
+            for obstacle in self.obstacles:
+                if np.array_equal(state[1:], obstacle):
+                    return 0
+            manhattan_distance = cityblock(state[1:], self.landing_zone)
+            return norm.pdf(manhattan_distance) / norm.pdf(0) # normalise against the max reward available
         else:
             return 0
 
@@ -134,7 +141,7 @@ class MarkovGridWorld():
         # the best option is to treat it like another crashed state.
         # this way, it's still there, and it's possible for a bad policy or for environment dynamics stochasticity to
         # make the agent crash against it --> most realistic
-        if current_state[0] > self.max_altitude or current_state[0] == 0: # agent has landed (> max_altitude), crashed (= 0), or has already been in the terminal state
+        if current_state[0] <= 0: # agent has landed (> max_altitude), crashed (= 0), or has already been in the terminal state
             if np.array_equal(successor_state, self.terminal_state):
                 return 1 # can only be taken to terminal_state
             else:
@@ -149,17 +156,6 @@ class MarkovGridWorld():
                 else:
                     return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
 
-
-        # then, consider the landing action:
-        # successor_state is guaranteed to be same as current_state, but with a 'landed' altitude.
-        if action == 5:
-            if np.array_equal(successor_state, np.array([current_state[0] + self.max_altitude, current_state[1], current_state[2]], dtype='int32')):
-                # landing must be succeeded by the same state but with altitude offset by self.max_altitude, which signifies landed state and
-                # which collects meaningful reward.
-                return 1
-            else:
-                return 0
-
         
         # Now, consider the case most similar to what we had the most in the 2D environment, where we're considering movement in
         # horizontal planes. However, have to adapt from the 2D case because we must consider the motion of the agent downwards at each time step.
@@ -167,13 +163,13 @@ class MarkovGridWorld():
         # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
         # and 5% probability for each of the other directions 
-        stochastics = np.ones(len(self.action_space) - 1) * self.prob_other_directions
+        stochastics = np.full(len(self.action_space), self.prob_other_directions)
         stochastics[action] = self.direction_probability
         # if the successor_state is reachable from current_state, we return the probabilities of getting there, given our input action
         # these probabilities have been defined by the stochastics vector above
         
         successor_probability = 0 # initialise probability of successor, might in the end be sum of various components of stochastics vector due to environment boundaries.
-        for direction_number in range(len(self.action_space) - 1):
+        for direction_number in range(len(self.action_space)):
             direction = self.action_to_direction[direction_number] # iterate over the five 2-element direction vectors
             # if the direction would lead us from current_state to successor_state, add to the output the probability
             # that the action given would lead us to that direction.
@@ -190,7 +186,7 @@ class MarkovGridWorld():
     # it's NOT used in the dynamic programming algorithms because those require the actual probability distributions of state transitions as functions of actions.
     # will be used if we move onto Monte Carlo methods or to just run individual episodes of the environment/agent/policy.
     def state_transition(self, state, action):
-        if state[0] == 0 or state[0] > self.max_altitude: # crashed, terminal, or landed
+        if state[0] <= 0: # landed or terminal
             new_state = self.terminal_state
             return new_state
         
@@ -199,20 +195,14 @@ class MarkovGridWorld():
             if np.array_equal(state[1:], obstacle):
                 new_state = self.terminal_state
                 return new_state
-        
-        # consider landing action.
-        # only changes altitude state dimension.
-        if action == 5:
-            new_state = np.array([state[0] + self.max_altitude, state[1], state[2]], dtype='int32')
-            return new_state
 
         # we're left with the case in flight, with actions being one of (0,1,2,3,4)
         # the stochastics array describes the probability, given an action from (0,1,2,3,4), of the result corresponding to what we'd expect from each of those actions
         # if action == 1, for example, if stochastics == array[0.05,0.8,0.05,0.05,0.05], then the resulting successor state will be what we would expect of action == 1 with 80% probability,
         # and 5% probability for each of the other directions.
-        stochastics = np.ones(len(self.action_space) - 1) * self.prob_other_directions
+        stochastics = np.full(len(self.action_space), self.prob_other_directions)
         stochastics[action] = self.direction_probability
-        effective_action = self.rng.choice(len(self.action_space) - 1, p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
+        effective_action = self.rng.choice(len(self.action_space), p=stochastics) # this is the effective action, after sampling from the action-biased distribution. Most times this should be equal to intended action
         effective_direction = self.action_to_direction[effective_action]
         new_state_2d = np.clip(state[1:] + effective_direction, 0, self.grid_size - 1) # gives new state, just in the horizontal plane, missing altitude
         new_state = np.concatenate((np.array([state[0] - 1]), new_state_2d))
@@ -223,11 +213,11 @@ class MarkovGridWorld():
 # value function is held in a column vector of size equal to len(MDP.state_space)
 def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
     if initial_value is None:
-        current_value = np.zeros((MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size)) # default initial guess is all zeros
+        current_value = np.zeros(MDP.problem_shape) # default initial guess is all zeros
     else:
         current_value = initial_value
 
-    change = np.zeros((MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size)) # this will store the change in the value for each state, in the latest iteration
+    change = np.zeros(MDP.problem_shape) # this will store the change in the value for each state, in the latest iteration
     # delta will always be positive after starting iterations (it's an absolue value).
     # thus we initialise it to -1 so that it doesn't trigger the while condition right away.
     delta = -1 # initialising the variable that will store the max change in the value_function across all states
@@ -286,7 +276,7 @@ def accessible_states(current_state, MDP):
     # agent has landed or
     # agent has crashed.
     # in these cases, the only accessible state from there is the MDP's terminal state.
-    if current_state[0] == 0 or current_state[0] > MDP.max_altitude:
+    if current_state[0] <= 0:
         return np.array(MDP.terminal_state, ndmin=2)
 
     # now onto all other cases, where drone is still flying.
@@ -297,18 +287,16 @@ def accessible_states(current_state, MDP):
     # thus, the output of this function might contain duplicate states, e.g., if current_state is at a boundary of the grid.
     # but that's okay for the purposes of the function.
     # importantly, there might also be unfilled
-    output = np.zeros(shape=(len(MDP.action_space), 3), dtype='int32')
+    output = - np.zeros(shape=(len(MDP.action_space), 3), dtype='int32')
     
-    for action in range(len(MDP.action_space) - 1): # THIS MINUS ONE DISCARDS THE LANDING ACTION
+    for action in range(len(MDP.action_space)): # THIS MINUS ONE DISCARDS THE LANDING ACTION
         direction = MDP.action_to_direction[action]
         potential_accessible = np.zeros(3, dtype='int32') # initialise
 
         potential_accessible[1:] = np.clip(current_state[1:] + direction, 0, MDP.grid_size - 1)
         potential_accessible[0] = current_state[0] - 1 # assign altitude as current's - 1
         output[action] = potential_accessible
-    
-    # now consider also result of landing action
-    output[-1] = np.concatenate((np.array([current_state[0] + MDP.max_altitude]), current_state[1:]))
+
     return output
 
 # this returns a 2D array with integers codifying greedy actions in it, with respect to an input value function.
@@ -316,7 +304,7 @@ def accessible_states(current_state, MDP):
 # keep in mind that such a greedy policy will always be deterministic, so the probability distribution will be very boring, with 1 assigned to the greedy action and 0 elsewhere.
 # however, this general structure is useful as it can be used directly in the generalised policy evaluation algorithm we've implemented, which assumes that form of a policy(action, state).
 def greedy_policy_array(value_function, MDP):
-    policy_array = np.empty(shape=(MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size), dtype='int32') # this array stores actions (0,1,2,3,4,5) which codify the greedy policy
+    policy_array = np.empty(shape=MDP.problem_shape, dtype='int32') # this array stores actions (0,1,2,3,4,5) which codify the greedy policy
     for state in MDP.state_space:
         potential_next_states = accessible_states(state, MDP)
         max_next_value = np.NINF # initialise max value attainable as minus infinity
@@ -325,7 +313,8 @@ def greedy_policy_array(value_function, MDP):
             if potential_value > max_next_value:
                 greedy_state_difference = successor_state - state
                 max_next_value = potential_value
-        policy_array[tuple(state)] = MDP.state_difference_to_action(greedy_state_difference)
+
+        policy_array[tuple(state)] = MDP.state_difference_to_action(greedy_state_difference, state)
     return policy_array
 
 # take array of scalar action representations and transform it into an actual policy(action, state)
@@ -333,8 +322,8 @@ def array_to_policy(policy_array, MDP):
     # 4D array used
     # 2nd and 3rd and 4th indices correspond to corresponding dimensions of the state space
     # 1st index corresponds to action number
-    state_action_probabilities = np.zeros(shape = (len(MDP.action_space), MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size))
-    for index in np.ndindex(MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size):
+    state_action_probabilities = np.zeros(shape = (len(MDP.action_space), MDP.problem_shape[0], MDP.problem_shape[1], MDP.problem_shape[2]))
+    for index in np.ndindex(MDP.problem_shape[0], MDP.problem_shape[1], MDP.problem_shape[2]):
         greedy_action = policy_array[index]
         
         state_action_probabilities[(greedy_action,) + index] = 1 # deterministic policy: just set probability of a single action to 1
@@ -359,14 +348,14 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
     policy_is_stable = False
     current_policy = policy
     initial_value = None
-    current_policy_array = np.ones(shape=(MDP.max_altitude * 2 + 1, MDP.grid_size, MDP.grid_size), dtype='int32') * -10 # initialise greedy policy array to a bogus instance
+    current_policy_array = np.ones(shape=MDP.problem_shape, dtype='int32') * -10 # initialise greedy policy array to a bogus instance
     while policy_is_stable is False and iteration_count <= improvement_max_iterations:
         # as per Sutton Barto 2nd, chapter 4.3, next iteration is better-converging if we
         # start with the previous value estimate, hence the assignment into initial_value
         print(f'Iteration number: {iteration_count}')
         print(f'Terminal state: {MDP.terminal_state}')
         print('Current greedy policy array (disregard in iteration no. 1):')
-        print(current_policy_array[:MDP.max_altitude + 1])
+        print(current_policy_array[:-1])
         print()
 
         initial_value = policy_evaluation(current_policy, MDP, initial_value, epsilon=0, max_iterations=evaluation_max_iterations)
@@ -383,7 +372,7 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
         iteration_count += 1
     
     print('Final policy array:')
-    print(current_policy_array[:MDP.max_altitude + 1])
+    print(current_policy_array[:-1])
     print()
     return current_policy, current_policy_array
 
@@ -427,7 +416,7 @@ def run_policy_evaluation(use_policy):
     print()
     print()
     print('Final value estimation:')
-    print(value[:GridWorld.max_altitude + 1])
+    print(value[:-1])
     #print(np.column_stack((value, GridWorld.state_space)))
     print()
     #print('Greedy policy array representation with respect to final value function estimate:')

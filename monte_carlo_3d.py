@@ -15,7 +15,7 @@ def generate_episode(MDP, policy):
     # from nature of the problem, the max number of observed states in an episode (up to reaching MDP.termina_state)
     # is MDP.max_altitude + 2 (descend all of the altitude down to 1, then land, and then get taken to MDP.terminal_state).
     # Also note history is not an integer array, because the rewards observed are in general not integers.
-    history = np.zeros(shape=(MDP.max_altitude + 2, no_state_dimensions + 1))
+    history = - np.ones(shape=(MDP.max_altitude + 2, no_state_dimensions + 1)) # initialise to terminal states
 
     # now we pick a state with altitude = MDP.max_altitude, with equal probability of any state.
     # this is initialising the state that then gets taken forward via sampling of problem dynamics and policy
@@ -54,10 +54,7 @@ def generate_episode(MDP, policy):
 def truncate_terminal(MDP, history):
     for row in range(history.shape[0]):
         if np.array_equal(history[row][:3], MDP.terminal_state):
-            if np.array_equal(history[row - 1][:3], np.array([1,0,0])):
-                return history[:row+1]
-            else:
-                return history[:row]
+            return history[:row]
 
 
 def sample_policy(MDP, policy, state):
@@ -91,25 +88,30 @@ def play_episode(MDP, policy, history):
             
             # plot obstacle as a sort of building up to MDP.max_altitude.
             # need to make this proper, just a crappy demo as it stands.
-            for obstacle in MDP.obstacles:
-                no_points = 50
-                x_obstacle = np.full((no_points, 1), obstacle[0])
-                y_obstacle = np.full((no_points, 1), obstacle[1])
-                z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
+            if MDP.obstacles.size != 0:
+                for obstacle in MDP.obstacles:
+                    no_points = 50
+                    x_obstacle = np.full((no_points, 1), obstacle[0])
+                    y_obstacle = np.full((no_points, 1), obstacle[1])
+                    z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
 
-                ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="h", c='black', s=marker_size*2, alpha=0.1)
+                    ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="h", c='black', s=marker_size*2, alpha=0.1)
+            
+            # also visualise landing zone
+            ax.scatter(MDP.landing_zone[0], MDP.landing_zone[1], 0, marker='o', c='purple', s=marker_size)
 
-        if history[i][0] == 0:
-            return ax.scatter(history[i][1], history[i][2], 0, marker="x", c='red', s=marker_size, alpha=1),
         for obstacle in MDP.obstacles:
             if np.array_equal(history[i][1:3], obstacle):
+                ax.plot(history[:,1],history[:,2],history[:,0], 'r-.') # trajectory
                 return ax.scatter(history[i][1], history[i][2], history[i][0], marker="x", c='red', s=marker_size, alpha=1),
-        if history[i][0] > MDP.max_altitude:
-            if np.array_equal(history[i][1:3], MDP.landing_zone):
-                return ax.scatter(history[i][1], history[i][2], 0, marker="h", c='green', s=marker_size, alpha=1),
-            else:
-                return ax.scatter(history[i][1], history[i][2], 0, marker="h", c='red', s=marker_size, alpha=1),
-        return ax.scatter(history[i][1], history[i][2], history[i][0], marker="P",  c='blue', s=marker_size, alpha=1),
+        
+        # landed, not obstacle because already checked
+        if history[i][0] == 0:
+            normalised_manhattan = cityblock(history[i][1:3], MDP.landing_zone) / ((MDP.grid_size - 1) * 2)
+            ax.plot(history[:,1],history[:,2],history[:,0], '-.', color=plt.cm.winter(1 - normalised_manhattan)) # plot trajectory
+            return ax.scatter(history[i][1], history[i][2], 0, marker='P', color=plt.cm.winter(1 - normalised_manhattan), s=marker_size, alpha=1),
+            
+        return ax.scatter(history[i][1], history[i][2], history[i][0], marker="P",  c='brown', s=marker_size, alpha=1),
 
 
     ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=100, repeat=False)
@@ -143,6 +145,6 @@ def run_random_then_optimal(MDP, policy, no_episodes):
 
 
 if __name__ == '__main__':
-    buildings = np.array([[1,0], [1,2], [3,3]], dtype='int32')
-    MDP = MarkovGridWorld(grid_size = 4, max_altitude=20, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=1)
+    buildings = np.array([[1,0], [1,2], [3,3], [5,4]], dtype='int32')
+    MDP = MarkovGridWorld(grid_size = 6, max_altitude=14, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=0.90)
     run_random_then_optimal(MDP, random_walk, no_episodes=5)
