@@ -217,7 +217,7 @@ def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no
 
         initial_value = monte_carlo_policy_evaluation(MDP, current_policy, no_episodes=evaluation_no_episodes)
         print('Previous policy evaluation:')
-        print(initial_value)
+        print(initial_value[:-1])
         new_policy_array = greedy_policy_array(initial_value, MDP)
         
         if np.array_equal(new_policy_array, current_policy_array):
@@ -229,9 +229,9 @@ def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no
         current_policy_array = new_policy_array
         current_policy = monte_carlo_array_to_policy(new_policy_array, MDP, epsilon=exploration_epsilon)
         iteration_count += 1
-    
+        
     print('Final policy array:')
-    print(current_policy_array)
+    print(current_policy_array[:-1])
     print()
     # in the end, best to return a DETERMINISTIC VERSION OF THE POLICY
     final_policy = array_to_policy(current_policy_array, MDP)
@@ -248,5 +248,8 @@ if __name__ == '__main__':
     print(f'Monte Carlo, number of improvement steps: {no_steps}')
     print()
     simulate_policy(MDP, random_walk, 5)
+    print(f'Monte Carlo, number of episodes per improvement: {no_episodes}')
+    print(f'Monte Carlo, number of improvement steps: {no_steps}')
+    input('Press Enter to continue...')
     new_policy, new_policy_array = monte_carlo_policy_iteration(random_walk, MDP, 0.2, no_episodes, no_steps)
     simulate_policy(MDP, new_policy, 10)
