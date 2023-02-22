@@ -96,6 +96,11 @@ def create_A(N, M2):
         A[i, 12*(i - 2):12*(i - 2)+4] = 1
     return A
 
+def create_Au_bounds(N, M2):
+    lower_bounds = np.zeros(shape=12*(N+1) + N + 1)
+    upper_bounds = np.zeros(shape=12*(N+1) + N + 1)
+    # CONTINUE HERE
+
 s = create_s(difference_d)
 r = create_r(difference_d)
 s_padded = np.array(pad(s), dtype='int32')
