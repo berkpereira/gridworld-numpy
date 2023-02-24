@@ -1,0 +1,3 @@
+# University of Bristol, BEng Aerospace Engineering — RP3 by Gabriel Berk Pereira
+
+This repository contains the code used to support the bulk of my RP3 work. It consists of comparing path-planning to help drones land in prescribed emergency landing sites on a 3D environment. 3 techniques were considered. Reinforcement learning via dynamic programming, reinforcement learning via Monte Carlo, and optimisation via integer program.
