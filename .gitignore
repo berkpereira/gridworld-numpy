@@ -1,2 +1,3 @@
 .env/
 /learn_animate.py
+*/__pycache__
