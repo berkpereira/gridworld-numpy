@@ -1,27 +1,43 @@
 import numpy as np
-import scipy.optimize
+from scipy.optimize import milp, Bounds, LinearConstraint
 import mip_4d_const as const
+import time
 
 """
 For now, am trying to figure out how to get this whole formulation to make sense and work.
 Will think of test cases and write functions along the way.
+
+In this context, N is equal to the max altitude
 """
 
 max_altitude = 3
-N = max_altitude
+N = max_altitude - 1
 
-identity_stuff = np.zeros(shape=(4*N,4*(N+1)), dtype='int32')
-for i in range(N):
-    identity_stuff[4*i : 4*i + 4, 4*i : 4*i + 4] = -np.identity(4, dtype='int32')
-    identity_stuff[4*i : 4*i + 4, 4*i + 4 : 4*i + 8] = np.identity(4, dtype='int32')
+# we need to add extra zero rows to accommodate the slack variables
+def create_input_constraint(N):
+    identity_stuff = np.zeros(shape=(4*N,4*(N+1)), dtype='int32')
+    for i in range(N):
+        identity_stuff[4*i : 4*i + 4, 4*i : 4*i + 4] = -np.identity(4, dtype='int32')
+        identity_stuff[4*i : 4*i + 4, 4*i + 4 : 4*i + 8] = np.identity(4, dtype='int32')
+    
+    # this is REALLY slow. copying arrays a bunch of times
+    identity_stuff = np.insert(identity_stuff, np.repeat(np.arange(4, 4*N + 1, 4), 8), 0, axis=1)
+    # ALSO append to the end as well!
+    identity_stuff = np.append(identity_stuff, np.zeros(shape=(4*N, 8)), axis=1).astype('int32')
+
+    # now create bounds on the constraint
+    #lower_bounds = np.zeros(shape = 4*N)
+    upper_bounds =  np.ones(shape = 4*N)
+
+    return LinearConstraint(identity_stuff, lb=-np.inf, ub=upper_bounds)
 
 # define test direction history: down, right, right, up
-d = np.array([1, 0, 0, 0,     0, 1, 0, 0,      0, 1, 0, 0,     0, 0, 1, 0], dtype='int32')
+#d = np.array([1, 0, 0, 0,     0, 1, 0, 0,      0, 1, 0, 0,     0, 0, 1, 0], dtype='int32')
 
 # calculate difference of velocities with linear method (Seb document, 2.3, first equation)
-difference_d = np.matmul(identity_stuff, d)
+#difference_d = np.matmul(identity_stuff, d)
 # and then its L1 norm. objective is to minimise this.
-l1_norm = np.linalg.norm(difference_d, ord=1)
+#l1_norm = np.linalg.norm(difference_d, ord=1)
 
 # The below test functions create s and r as required
 def create_s(difference_d):
@@ -34,6 +50,7 @@ def create_r(difference_d):
 
 # check for correction of s, r, as per Seb's document.
 # However, I think we should also check for integers not larger in absolute value than 1!
+# thus, all decision variables are constrained to be integers
 def is_s_r_correct(s, r, difference_d):
     if not np.array_equal(s + r, difference_d):
         return False
@@ -85,35 +102,73 @@ def create_u_bounds(N):
         else: # bounds on r_k
             lower_bounds[i] = -1
             upper_bounds[i] = 0
-    return lower_bounds, upper_bounds
+    return Bounds(lb=lower_bounds, ub=upper_bounds)
 
-def create_A(N, M2):
+# matrix used in 2nd line of canonical scipy form
+def create_A_constraint(N, terminal_state):
+    M2 = create_M2(N)
     A = np.zeros(shape=(2 + N + 1, 12*(N+1)))
     A[:2, :] = M2
     
     # fill in extra rows for constraining d_k sums
     for i in range(2, A.shape[0]):
         A[i, 12*(i - 2):12*(i - 2)+4] = 1
-    return A
+    lower_bounds, upper_bounds = create_Au_bounds(terminal_state, N, M2)
 
-def create_Au_bounds(N, M2):
-    lower_bounds = np.zeros(shape=12*(N+1) + N + 1)
-    upper_bounds = np.zeros(shape=12*(N+1) + N + 1)
-    # CONTINUE HERE
+    return LinearConstraint(A, lb=lower_bounds, ub=upper_bounds)
 
-s = create_s(difference_d)
-r = create_r(difference_d)
-s_padded = np.array(pad(s), dtype='int32')
-r_padded = np.array(pad(r), dtype='int32')
-u = create_u(s_padded, r_padded, d, N)
-manhattan_helper = create_manhattan_helper(N)
-#print(np.matmul(manhattan_helper, u))
+# bounds in 2nd line of canonical scipy form
+# at this moment, assuming starting state of [0,0]
+def create_Au_bounds(terminal_state, N, M2):
+    #lower_bounds = np.zeros(shape=12*(N+1) + N + 1)
+    #upper_bounds = np.zeros(shape=12*(N+1) + N + 1)
+    
+    lower_bounds = np.zeros(shape= 2 + N + 1)
+    lower_bounds[:2] = terminal_state
+    lower_bounds[2:] = 1
+    upper_bounds = np.copy(lower_bounds)
 
-M2 = create_M2(N)
-lower, upper = create_u_bounds(N)
+    return lower_bounds, upper_bounds
 
-#print(lower.size)
-#print(upper)
+def create_int_constraint(N):
+    return np.ones(shape=12*(N+1))
 
-A = create_A(N, M2)
-print(A)
+def extract_d_variables(u, N):
+    d_variables = np.zeros(shape=4*(N+1))
+    j = 0
+    for i in range(u.size):
+        if i % 12 < 4:
+            d_variables[j] = u[i]
+            j += 1
+    return d_variables.astype('int32')
+
+
+# REMEMBER: N = max altitude - 1
+def mip_optimise(N, terminal_state):
+    A_constraint = create_A_constraint(N, terminal_state)
+    u_bounds = create_u_bounds(N)
+    int_constraint = create_int_constraint(N)
+    objective_coeffs = create_manhattan_helper(N)
+    input_constraint = create_input_constraint(N)
+    constraints = [input_constraint, A_constraint]
+    #constraints = A_constraint
+
+    result = milp(c=objective_coeffs, integrality=int_constraint, bounds=u_bounds, constraints=constraints, options={'disp':True})
+    return result
+
+
+if __name__ == '__main__':
+    max_altitude = 1000
+    N = max_altitude - 1
+    terminal_state = np.array([1000,0], dtype='int32')
+    st = time.time()
+    solution = mip_optimise(N, terminal_state)
+    et = time.time()
+    print('Done')
+    print(f'Time elapsed: {et - st} seconds')
+    if solution.x is None:
+        print('No solution found')
+    else:
+        print('Solution found.')
+        print('d variable history below:')
+        print(extract_d_variables(solution.x, N))
