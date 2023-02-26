@@ -2,7 +2,7 @@ param grid_size;
 param T;
 param initial {0..1};
 param landing {0..1};
-#param obstacles;
+
 
 set   TIME := 0..T; # set of discrete points in time. related to starting altitude.
 set VELOCITY_INDEX := 0..3;
