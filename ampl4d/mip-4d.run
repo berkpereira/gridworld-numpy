@@ -1,0 +1,8 @@
+reset;
+model velocity-simpler.mod;
+data velocity-simpler.dat;
+option solver highs;
+option display_1col 0;
+option display_transpose -500;
+solve;
+display {t in 0..(T-1), i in 0..3}  Velocity[t, i];

@@ -89,7 +89,10 @@ def play_episode(MDP, policy, history):
     def animate(i):
         if i == 0:
             ax.clear()
-            ax.set_title(f'Agent simulation under policy: {policy.__name__}\nDirection probability: {MDP.direction_probability}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
+            if policy is None:
+                ax.set_title(f'Agent simulation from MIP solution.\nLanding zone (x,y): {tuple(MDP.landing_zone)}')
+            else:    
+                ax.set_title(f'Agent simulation under policy: {policy.__name__}\nDirection probability: {MDP.direction_probability}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
             ax.axes.set_xlim3d(left=0, right=MDP.grid_size - 1)
             ax.axes.set_ylim3d(bottom=0, top=MDP.grid_size - 1)
             ax.axes.set_zlim3d(bottom=0, top=MDP.max_altitude)
