@@ -1,7 +1,7 @@
 reset;
 model velocity-simpler.mod;
 data velocity-simpler.dat;
-option solver highs;
+option solver cplex;
 option display_1col 0;
 option display_transpose -500;
 solve;

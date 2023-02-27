@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import time
+import math
 import numpy as np
 from monte_carlo_4d import *
 from amplpy import AMPL, Environment
@@ -52,13 +53,13 @@ def reshape_velocities(velocities_vec):
     return reshaped
 
 def binary_velocity_to_direction(binary_decision_vec):
-    if binary_decision_vec[0] == 1: # down
+    if math.isclose(binary_decision_vec[0], 1): # down
         return np.array([1,0], dtype='int32')
-    elif binary_decision_vec[1] == 1: # right
+    elif math.isclose(binary_decision_vec[1], 1): # right
         return np.array([0,1], dtype='int32')
-    elif binary_decision_vec[2] == 1: # up
+    elif math.isclose(binary_decision_vec[2], 1): # up
         return np.array([-1,0], dtype='int32')
-    elif binary_decision_vec[3] == 1: # left
+    elif math.isclose(binary_decision_vec[3], 1): # left
         return np.array([0,-1], dtype='int32')
     else:
         raise Exception("No valid direction conversion!")
