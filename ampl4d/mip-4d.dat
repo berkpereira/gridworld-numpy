@@ -1,15 +1,15 @@
-param grid_size := 30;
-param T := 50;
+param grid_size := 5;
+param T := 10;
 param no_obstacles := 3;
 param initial_velocity_index := 0;
 
 param initial :=
-	0	10
-	1	10;
+	0	2
+	1	1;
 	
 param landing :=
-	0	3
-	1	3;
+	0	4
+	1	0;
 	
 param obstacles :
 	0   1  :=

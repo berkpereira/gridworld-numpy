@@ -22,7 +22,7 @@ subj to SlackSumLand {i in POSITION_INDEX} : (sum {t in 0..(T-1)} (Velocity[t,i]
 subj to SingleDirectionVelocity {t in TIME} : sum {i in VELOCITY_INDEX} Velocity[t,i] <= 1;
 
 # enforce boundaries for all steps in time, for both directions
-subj to Boundaries {t in TIME, j in 0..1} : 0 <= (sum {i in 0..(t-1)} (Velocity[i,j] - Velocity[i,j+2])) + initial[j] <= grid_size - 1 - initial[j];
+subj to Boundaries {t in TIME, j in 0..1} : 0 <= (sum {i in 0..(t-1)} (Velocity[i,j] - Velocity[i,j+2])) + initial[j] <= grid_size - 1;
 
 # other obstacles
 #subj to ObstaclesX {t in TIME, j in OBSTACLES} : (sum {i in 0..t} VelocityXPlus[i] - VelocityXMinus[i]) + initialX < obstacles[i];
