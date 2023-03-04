@@ -86,7 +86,7 @@ def convert_to_history(velocities, initial_pd):
 
 # this functions takes as input an ampl objective with already read model and data files to begin with.
 # Only then does it modifie the model data in accordance with the input MDP.
-def mip_history_from_mdp(MDP, initial_state, initial_velocity_index, ampl):
+def mip_history_and_actions_from_mdp(MDP, initial_state, initial_velocity_index, ampl):
     mip_max_altitude = ampl.get_parameter('T')
     mip_max_altitude.set(MDP.max_altitude)
 
@@ -109,7 +109,11 @@ def mip_history_from_mdp(MDP, initial_state, initial_velocity_index, ampl):
     # solve integer optimisation problem
     ampl = solve_mip(ampl)
 
-    # Fetch velocities and put them into a suitable data shape.    
+    # Fetch velocities and put them into a suitable data shape.
+    #
+    #
+    #
+    #
     velocities = ampl.get_variable('Velocity')
     velocities = velocities.get_values().to_pandas()
     velocities = velocities.to_numpy()
@@ -121,31 +125,17 @@ def mip_history_from_mdp(MDP, initial_state, initial_velocity_index, ampl):
 
     return history
 
-
-"""
-# solve and get optimal variables
-ampl = solve_mip()
-velocities = ampl.get_variable('Velocity')
-velocities = velocities.get_values().to_pandas()
-velocities = velocities.to_numpy()
-velocities = get_velocities(velocities)
-
-initial_pd = ampl.get_parameter('initial').get_values().to_pandas()
-
-print('History:')
-print(convert_to_history(velocities, initial_pd))
-
-MDP = mdp_from_mip(ampl)
-
-history = convert_to_history(velocities, initial_pd)
-play_episode(MDP, None, history)
-"""
+# this function expects velocites in some form that I must choose still. Perhaps a matrix of 2-element array velocities?
+def actions_from_mip_variables(velocities):
+    pass
 
 if __name__ == "__main__":
     ampl = AMPL(Environment(path_to_ampl_exec))
     ampl.read(path_to_this_repo + "/ampl4d/new-mip-4d.mod")
     ampl.read_data(path_to_this_repo + "/ampl4d/mip-4d.dat")
-    MDP = MarkovGridWorld(grid_size=5, obstacles=np.array([[]]), landing_zone = np.array([4,0]), max_altitude=10)
+    MDP = MarkovGridWorld(grid_size=5, obstacles=np.array([[]]), landing_zone = np.array([0,4]), max_altitude=11)
     initial_state = [2,1]
-    history = mip_history_from_mdp(MDP, initial_state, 0, ampl)
+    
+    # mip_history_from_mdp is the crucial function here 
+    history = mip_history_and_actions_from_mdp(MDP, initial_state, 2, ampl)
     play_episode(MDP, None, history)

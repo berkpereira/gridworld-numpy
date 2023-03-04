@@ -1,0 +1,12 @@
+THINGS TO LOOK AT NEXT:
+
+--> was in the process of thinking how to implement closed-loop simulation given an mip solution. The challenge is that, whereas the MDP dynamics
+sampling methods of before were expecting actions, the mip decision variables are just velocities. So, I need to take a history of velocities and
+convert them into an equivalent history of actions, so that I can feed these to an environment sampling method and simulate the real thing
+using methods from before.
+As an important point, consider the nuances of doing this for the first time step in a history, TAKE CLUES FROM TAKE-IT-FROM-HERE.pdf
+
+
+--> also need to extend obstacles feature into mip formulation. more slack variables needed (?)
+
+--> 
