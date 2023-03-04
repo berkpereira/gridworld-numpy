@@ -1,5 +1,5 @@
 reset;
-model mip-4d.mod;
+model new-mip-4d.mod;
 data mip-4d.dat;
 option solver cplex;
 option display_1col 0;

@@ -32,8 +32,8 @@ def solve_mip():
     assert ampl.get_value("solve_result") == "solved"
 
     # get number of turns in solution (cost function)
-    objective = ampl.get_objective('DirectionChanges')
-    print(f'Objective function (number of turns): {objective.value()}')
+    objective = ampl.get_objective('LandingError')
+    print(f'Objective function (landing error): {objective.value()}')
     return ampl
 
 # ampl object is the input here

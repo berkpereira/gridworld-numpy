@@ -6,17 +6,18 @@ import numpy as np
 from monte_carlo_4d import *
 from amplpy import AMPL, Environment
 
+os.system('clear')
 path_to_ampl_exec = "/Users/gabrielpereira/ampl.macos64"
 path_to_this_repo = "/Users/gabrielpereira/repos/gridworld-numpy"
 
-def solve_mip():
+def solve_mip(ampl):
     # load ampl installation
-    ampl = AMPL(Environment(path_to_ampl_exec))
+    #ampl = AMPL(Environment(path_to_ampl_exec))
     #print(ampl.get_option('version')) # check version, etc.
 
     # read model and data files
-    ampl.read(path_to_this_repo + "/ampl4d/mip-4d.mod")
-    ampl.read_data(path_to_this_repo + "/ampl4d/mip-4d.dat")
+    #ampl.read(path_to_this_repo + "/ampl4d/new-mip-4d.mod")
+    #ampl.read_data(path_to_this_repo + "/ampl4d/mip-4d.dat")
 
     # specify the solver to use
     ampl.option["solver"] = "cplex"
@@ -31,9 +32,9 @@ def solve_mip():
     # stop here if the model was not solved
     assert ampl.get_value("solve_result") == "solved"
 
-    # get number of turns in solution (cost function)
-    objective = ampl.get_objective('DirectionChanges')
-    print(f'Objective function (number of turns): {objective.value()}')
+    # get cost function
+    objective = ampl.get_objective('LandingError')
+    print(f'Objective function (landing error): {objective.value()}')
     return ampl
 
 # ampl object is the input here
@@ -46,7 +47,7 @@ def mdp_from_mip(ampl):
     MDP = MarkovGridWorld(grid_size=grid_size, obstacles =np.array([], dtype='int32') , landing_zone=landing_zone, max_altitude=max_altitude)
     return MDP
 
-def reshape_velocities(velocities_vec):
+def get_velocities(velocities_vec):
     reshaped = np.zeros(shape=(int(velocities_vec.shape[0] / 4), 4))
     for i in range(reshaped.shape[0]):
         reshaped[i,:] = (velocities_vec[4*i:(4*i) + 4].flatten())
@@ -82,16 +83,52 @@ def convert_to_history(velocities, initial_pd):
         history[i,0] = altitude
     return history
 
-    
-    
-    
 
+# this functions takes as input an ampl objective with already read model and data files to begin with.
+# Only then does it modifie the model data in accordance with the input MDP.
+def mip_history_from_mdp(MDP, initial_state, initial_velocity_index, ampl):
+    mip_max_altitude = ampl.get_parameter('T')
+    mip_max_altitude.set(MDP.max_altitude)
+
+    mip_landing_zone = ampl.get_parameter('landing')
+    mip_landing_zone.set_values([MDP.landing_zone[0], MDP.landing_zone[1]])
+
+    mip_grid_size = ampl.get_parameter('grid_size')
+    mip_grid_size.set(MDP.grid_size)
+
+    mip_initial_state = ampl.get_parameter('initial')
+    mip_initial_state.set_values([initial_state[0], initial_state[1]])
+
+    mip_initial_velocity_index = ampl.get_parameter('initial_velocity_index')
+    mip_initial_velocity_index.set(initial_velocity_index)
+
+    # Here we will also address obstacles at some point.
+    #
+    #
+
+    # solve integer optimisation problem
+    ampl = solve_mip(ampl)
+
+    # Fetch velocities and put them into a suitable data shape.    
+    velocities = ampl.get_variable('Velocity')
+    velocities = velocities.get_values().to_pandas()
+    velocities = velocities.to_numpy()
+    velocities = get_velocities(velocities)
+
+    # convert initial state and velocity information into a history matrix:
+    initial_pd = ampl.get_parameter('initial').get_values().to_pandas()
+    history = convert_to_history(velocities, initial_pd)
+
+    return history
+
+
+"""
 # solve and get optimal variables
 ampl = solve_mip()
 velocities = ampl.get_variable('Velocity')
 velocities = velocities.get_values().to_pandas()
 velocities = velocities.to_numpy()
-velocities = reshape_velocities(velocities)
+velocities = get_velocities(velocities)
 
 initial_pd = ampl.get_parameter('initial').get_values().to_pandas()
 
@@ -102,3 +139,13 @@ MDP = mdp_from_mip(ampl)
 
 history = convert_to_history(velocities, initial_pd)
 play_episode(MDP, None, history)
+"""
+
+if __name__ == "__main__":
+    ampl = AMPL(Environment(path_to_ampl_exec))
+    ampl.read(path_to_this_repo + "/ampl4d/new-mip-4d.mod")
+    ampl.read_data(path_to_this_repo + "/ampl4d/mip-4d.dat")
+    MDP = MarkovGridWorld(grid_size=5, obstacles=np.array([[]]), landing_zone = np.array([4,0]), max_altitude=10)
+    initial_state = [2,1]
+    history = mip_history_from_mdp(MDP, initial_state, 0, ampl)
+    play_episode(MDP, None, history)

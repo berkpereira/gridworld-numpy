@@ -1,10 +1,10 @@
 param grid_size := 20;
-param T := 20;
+param T := 30;
 
 param initial :=
 	0	0
 	1	0;
 	
 param landing :=
-	0	15
-	1	5;
+	0	19
+	1	19;
