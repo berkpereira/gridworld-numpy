@@ -103,8 +103,9 @@ def mip_history_and_actions_from_mdp(MDP, initial_state, initial_velocity_index,
     mip_initial_velocity_index.set(initial_velocity_index)
 
     # Here we will also address obstacles at some point.
-    #
-    #
+    #mip_no_obstacles = ampl.get_parameter('no_obstacles')
+    #mip_no_obstacles.set(MDP.obstacles.shape[0])
+
 
     # solve integer optimisation problem
     ampl = solve_mip(ampl)
@@ -133,9 +134,10 @@ if __name__ == "__main__":
     ampl = AMPL(Environment(path_to_ampl_exec))
     ampl.read(path_to_this_repo + "/ampl4d/new-mip-4d.mod")
     ampl.read_data(path_to_this_repo + "/ampl4d/mip-4d.dat")
-    MDP = MarkovGridWorld(grid_size=5, obstacles=np.array([[]]), landing_zone = np.array([0,4]), max_altitude=11)
-    initial_state = [2,1]
-    
+    MDP = MarkovGridWorld(grid_size=3, obstacles=np.array([[0,0]]), landing_zone = np.array([2,2]), max_altitude=6)
+    initial_state = [0,0]
+    # obstacles=np.array([[1,0], [1,1], [1,2], [2,2]])
+    # obstacles=np.array([[]])
     # mip_history_from_mdp is the crucial function here 
-    history = mip_history_and_actions_from_mdp(MDP, initial_state, 2, ampl)
+    history = mip_history_and_actions_from_mdp(MDP, initial_state, 0, ampl)
     play_episode(MDP, None, history)

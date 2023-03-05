@@ -1,12 +1,13 @@
 THINGS TO LOOK AT NEXT:
 
---> was in the process of thinking how to implement closed-loop simulation given an mip solution. The challenge is that, whereas the MDP dynamics
-sampling methods of before were expecting actions, the mip decision variables are just velocities. So, I need to take a history of velocities and
-convert them into an equivalent history of actions, so that I can feed these to an environment sampling method and simulate the real thing
-using methods from before.
-As an important point, consider the nuances of doing this for the first time step in a history, TAKE CLUES FROM TAKE-IT-FROM-HERE.pdf
+--> Obstacles now, as far as I've quickly gathered, working properly in the MIP model.
+ONE THING TO NOTE is the fact that I AM NOT SURE whether the MIP model checks for whether the initial state is at an obstacle!
+HAS TO DO WITH THE DETAILED SUM INDICES IN THE OBSTACLE AVOIDANCE CONSTRAINTS, CHECK IT!
 
+--> UP NEXT:
+need to figure out how to change obstacle matrix parameters from the python script in order to solve the MIP problem corresponding to the MDP model.
 
---> also need to extend obstacles feature into mip formulation. more slack variables needed (?)
-
---> 
+--> THEN
+need to convert a history of velocities to a history of actions.
+Remember, ultimate goal at this stage is to be able to run a closed-loop simulation using the MDP sampling methods, for which we need actions!, not velocities.
+then we can compare things as we simulate them and re-solve the MIP when the outcomes differ, but always with the environment dynamics methods from before. 

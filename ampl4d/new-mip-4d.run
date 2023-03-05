@@ -6,3 +6,12 @@ option display_1col 0;
 option display_transpose -500;
 solve;
 display {t in 0..(T-1), i in 0..3}  Velocity[t, i];
+#display (sum {t in 0..0} (Velocity[t,0] - Velocity[t,2])) + initial[0] - obstacles[3,0];
+#display SlackPosObstacles[0,3,0];
+#display SlackNegObstacles[0,3,0];
+#display SlackPosObstacles[0,3,0] - SlackNegObstacles[0,3,0];
+
+#display ObstacleActiveRow[0,0,0];
+#display ObstacleActiveCol[0,0,0];
+#display ObstacleActiveRow[0,0,1];
+#display ObstacleActiveCol[0,0,1];
