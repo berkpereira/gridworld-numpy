@@ -23,7 +23,7 @@ var SlackNegLand {POSITION_INDEX} integer <= 0;
 var ObstacleRelax {TIME, OBSTACLE_INDEX, VELOCITY_INDEX} binary;
 
 # cannot relax more than 3 directions. As per Richards2002 paper:
-subj to ObstacleRelaxLimit {k in 0..(T-1), i in OBSTACLE_INDEX} : (sum {v in VELOCITY_INDEX} (ObstacleRelax[k,i,v])) <= 3;
+subj to ObstacleRelaxLimit {k in TIME, i in OBSTACLE_INDEX} : (sum {v in VELOCITY_INDEX} (ObstacleRelax[k,i,v])) <= 3;
 
 # avoid obstacles 
 subj to AvoidObstacleRowPos {k in TIME, i in OBSTACLE_INDEX} :   (sum {t in 0..(k-1)} (Velocity[t,0] - Velocity[t,2])) + initial[0] - obstacles[i,0] >= 1 - (10000 * ObstacleRelax[k,i,0]);
