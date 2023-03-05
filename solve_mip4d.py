@@ -103,8 +103,12 @@ def mip_history_and_actions_from_mdp(MDP, initial_state, initial_velocity_index,
     mip_initial_velocity_index.set(initial_velocity_index)
 
     # Here we will also address obstacles at some point.
-    #mip_no_obstacles = ampl.get_parameter('no_obstacles')
-    #mip_no_obstacles.set(MDP.obstacles.shape[0])
+    mip_no_obstacles = ampl.get_parameter('no_obstacles')
+    mip_no_obstacles.set(MDP.obstacles.shape[0])
+    mip_obstacles = ampl.get_parameter('obstacles')
+    for i in range(MDP.obstacles.shape[0]):
+        mip_obstacles[i,0] = int(MDP.obstacles[i,0])
+        mip_obstacles[i,1] = int(MDP.obstacles[i,1])
 
 
     # solve integer optimisation problem
@@ -124,20 +128,40 @@ def mip_history_and_actions_from_mdp(MDP, initial_state, initial_velocity_index,
     initial_pd = ampl.get_parameter('initial').get_values().to_pandas()
     history = convert_to_history(velocities, initial_pd)
 
-    return history
+    actions = actions_from_mip_variables(velocities, MDP.max_altitude)
 
-# this function expects velocites in some form that I must choose still. Perhaps a matrix of 2-element array velocities?
-def actions_from_mip_variables(velocities):
-    pass
+    return history, actions
+
+# this function expects velocites in a (T+1)x4 matrix of binary variables
+def actions_from_mip_variables(velocities, max_altitude):
+    actions = np.zeros(shape=max_altitude)
+
+    # first action must always be 0. This is because the MIP formulation is limited in its first time step to the initial velocity,
+    # whereas the DP formulation allows the agent to "override" the initial velocity using its first action.
+    for i in range(1, max_altitude):
+        if np.array_equal(velocities[i], velocities[i-1]):
+            actions[i] = 0
+        elif np.where(velocities[i] == 1)[0][0] == np.where(velocities[i-1] == 1)[0][0] + 1:
+            actions[i] = 2
+        elif np.where(velocities[i] == 1)[0][0] == np.where(velocities[i-1] == 1)[0][0] - 1:
+            actions[i] = 1
+        elif velocities[i,0] == 1: # edge case no. 1
+            actions[i] = 2
+        else: # edge case no. 2
+            actions[i] = 1
+    return actions
 
 if __name__ == "__main__":
     ampl = AMPL(Environment(path_to_ampl_exec))
     ampl.read(path_to_this_repo + "/ampl4d/new-mip-4d.mod")
     ampl.read_data(path_to_this_repo + "/ampl4d/mip-4d.dat")
-    MDP = MarkovGridWorld(grid_size=3, obstacles=np.array([[0,0]]), landing_zone = np.array([2,2]), max_altitude=6)
+    MDP = MarkovGridWorld(grid_size=5, obstacles=np.array([[0,1], [2,0], [3,0]]), landing_zone = np.array([2,2]), max_altitude=6)
     initial_state = [0,0]
     # obstacles=np.array([[1,0], [1,1], [1,2], [2,2]])
     # obstacles=np.array([[]])
     # mip_history_from_mdp is the crucial function here 
-    history = mip_history_and_actions_from_mdp(MDP, initial_state, 0, ampl)
+    history, actions = mip_history_and_actions_from_mdp(MDP, initial_state, 0, ampl)
+    print(history)
+    print()
+    print(actions)
     play_episode(MDP, None, history)
