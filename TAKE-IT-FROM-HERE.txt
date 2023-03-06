@@ -1,13 +1,11 @@
 THINGS TO LOOK AT NEXT:
 
---> Obstacles now, as far as I've quickly gathered, working properly in the MIP model.
-ONE THING TO NOTE is the fact that I AM NOT SURE whether the MIP model checks for whether the initial state is at an obstacle!
-HAS TO DO WITH THE DETAILED SUM INDICES IN THE OBSTACLE AVOIDANCE CONSTRAINTS, CHECK IT!
-
---> UP NEXT:
-need to figure out how to change obstacle matrix parameters from the python script in order to solve the MIP problem corresponding to the MDP model.
-
 --> THEN
-need to convert a history of velocities to a history of actions.
-Remember, ultimate goal at this stage is to be able to run a closed-loop simulation using the MDP sampling methods, for which we need actions!, not velocities.
-then we can compare things as we simulate them and re-solve the MIP when the outcomes differ, but always with the environment dynamics methods from before. 
+Closed-loop MIP simulation-recomputation is working!
+The only issue with it is to do with all the cases in which the experienced state makes for an MIP problem with an initial state which
+makes a solution infeasible as per the formulation's constraints (e.g., where an initial state is making it fly outside a boundary or against an obstacle)!
+
+It would be preferable to treat the obstacle-related cases separately from the boundary-related ones, since the former is an indication of the
+fail cases of the approach, whereas the latter is more of an "arbitrary" artefact of the formulation.
+
+Would be good to implement some function where we can tell these apart straightforwardly so we score the approaches more correctly.
