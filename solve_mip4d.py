@@ -10,6 +10,15 @@ os.system('clear')
 path_to_ampl_exec = "/Users/gabrielpereira/ampl.macos64"
 path_to_this_repo = "/Users/gabrielpereira/repos/gridworld-numpy"
 
+def initialise_ampl():
+    path_to_ampl_exec = "/Users/gabrielpereira/ampl.macos64"
+    path_to_this_repo = "/Users/gabrielpereira/repos/gridworld-numpy"
+    ampl = AMPL(Environment(path_to_ampl_exec))
+    ampl.read(path_to_this_repo + "/ampl4d/new-mip-4d.mod")
+    ampl.read_data(path_to_this_repo + "/ampl4d/mip-4d.dat")
+    return ampl
+
+
 def solve_mip(ampl):
     # load ampl installation
     #ampl = AMPL(Environment(path_to_ampl_exec))
@@ -26,16 +35,20 @@ def solve_mip(ampl):
     st = time.time()
     ampl.solve()
     et = time.time()
-    print(f'Done in {et - st} seconds.')
+    solve_time = et - st
+    print(f'Done in {solve_time} seconds.')
 
 
     # stop here if the model was not solved
-    assert ampl.get_value("solve_result") == "solved"
+    try:
+        assert ampl.get_value("solve_result") == "solved"
+    except: # return number of outputs equal to regular output!
+        return False, False
 
     # get cost function
-    objective = ampl.get_objective('LandingError')
-    print(f'Objective function (landing error): {objective.value()}')
-    return ampl
+    #objective = ampl.get_objective('LandingError')
+    #print(f'Objective function (landing error): {objective.value()}')
+    return ampl, solve_time
 
 # ampl object is the input here
 def mdp_from_mip(ampl):
@@ -73,6 +86,7 @@ def convert_to_history(velocities, initial_pd):
     history = np.zeros(shape = (velocities.shape[0], velocities.shape[1] + 1))
 
     history[0,2:4] = np.array([initial_pd["initial"][0], initial_pd["initial"][1]])
+    history[0,1] = np.where(velocities[0] == 1)[0][0]
     altitude = velocities.shape[0] - 1
     history[0,0] = altitude
     for i in range(1, velocities.shape[0]):
@@ -112,13 +126,13 @@ def mip_history_and_actions_from_mdp(MDP, initial_state, initial_velocity_index,
 
 
     # solve integer optimisation problem
-    ampl = solve_mip(ampl)
+    ampl, solve_time = solve_mip(ampl)
+
+    # solution failed!
+    if ampl is False: # return number of arguments equal to regular output! thus doesn't break unpacking when called 
+        return False, False, False
 
     # Fetch velocities and put them into a suitable data shape.
-    #
-    #
-    #
-    #
     velocities = ampl.get_variable('Velocity')
     velocities = velocities.get_values().to_pandas()
     velocities = velocities.to_numpy()
@@ -130,11 +144,11 @@ def mip_history_and_actions_from_mdp(MDP, initial_state, initial_velocity_index,
 
     actions = actions_from_mip_variables(velocities, MDP.max_altitude)
 
-    return history, actions
+    return history, actions, solve_time
 
 # this function expects velocites in a (T+1)x4 matrix of binary variables
 def actions_from_mip_variables(velocities, max_altitude):
-    actions = np.zeros(shape=max_altitude)
+    actions = np.zeros(shape=max_altitude, dtype='int32')
 
     # first action must always be 0. This is because the MIP formulation is limited in its first time step to the initial velocity,
     # whereas the DP formulation allows the agent to "override" the initial velocity using its first action.
@@ -152,16 +166,16 @@ def actions_from_mip_variables(velocities, max_altitude):
     return actions
 
 if __name__ == "__main__":
-    ampl = AMPL(Environment(path_to_ampl_exec))
-    ampl.read(path_to_this_repo + "/ampl4d/new-mip-4d.mod")
-    ampl.read_data(path_to_this_repo + "/ampl4d/mip-4d.dat")
-    MDP = MarkovGridWorld(grid_size=5, obstacles=np.array([[0,1], [2,0], [3,0]]), landing_zone = np.array([2,2]), max_altitude=6)
-    initial_state = [0,0]
-    # obstacles=np.array([[1,0], [1,1], [1,2], [2,2]])
-    # obstacles=np.array([[]])
+    ampl = initialise_ampl()
+    #MDP = MarkovGridWorld(grid_size=20, obstacles=np.array([[4,4], [5,6], [13,4], [3,16], [12,12], [16,6]]), landing_zone = np.array([6,6]), max_altitude=20)
+    test_MDP = MarkovGridWorld(grid_size=5, direction_probability=1, obstacles=np.array([[0,0]]), landing_zone=np.array([2,2]), max_altitude=6)
+    initial_state = [1,1]
+
     # mip_history_from_mdp is the crucial function here 
-    history, actions = mip_history_and_actions_from_mdp(MDP, initial_state, 0, ampl)
+    history, actions, solve_time = mip_history_and_actions_from_mdp(test_MDP, initial_state, 0, ampl)
     print(history)
     print()
     print(actions)
-    play_episode(MDP, None, history)
+    print()
+    print(f'Solve time: {solve_time} seconds')
+    play_episode(test_MDP, None, history)
