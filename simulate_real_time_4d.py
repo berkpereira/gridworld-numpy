@@ -54,7 +54,7 @@ def mip_simulate_closed_loop(sim_MDP, sim_mip_initial_state, sim_initial_velocit
             if (step + 1) < mip_history.shape[0]:
                 experienced_next_state = MDP.state_transition(mip_history[step,:4], actions[step])
 
-        print('broke while condition')
+        #print('broke while condition')
         # if we've already filled out the entire simulated history down to the ground, end here.
         if sim_history_index >= sim_history.shape[0]:
             break
@@ -85,8 +85,8 @@ if __name__ == "__main__":
     #MDP_list = [dp4.MarkovGridWorld(grid_size=5, direction_probability=1, obstacles=np.array([[]]), landing_zone=np.array([0,0]), max_altitude=10),
     #            dp4.MarkovGridWorld(grid_size=4, direction_probability=1, obstacles=np.array([[]]), landing_zone=np.array([0,0]), max_altitude=5)]
     
-    test_MDP = dp4.MarkovGridWorld(grid_size=8, direction_probability=0.9, obstacles=np.array([[1,1], [1,0], [3,0]]), landing_zone=np.array([2,2]), max_altitude=8)
-    sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(sim_MDP=test_MDP, sim_mip_initial_state=np.array([2,2]), sim_initial_velocity_index=3)
+    test_MDP = dp4.MarkovGridWorld(grid_size=25, direction_probability=0.9, obstacles=np.array([[0,1], [10,0], [4,21], [13,6], [20,20]]), landing_zone=np.array([15,15]), max_altitude=80)
+    sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(sim_MDP=test_MDP, sim_mip_initial_state=np.array([5,5]), sim_initial_velocity_index=0)
     print(sim_history)
     print()
     print(f"Number of MIP solutions: {sim_mip_solutions}.\nCumulative time spent computing MIP solutions: {sim_compute_time} seconds.")
