@@ -78,7 +78,7 @@ def play_episode(MDP, policy, history):
     ax = fig.add_subplot(projection="3d")
     ax.set_aspect('equal')
     ax.grid()
-    marker_size = 400
+    marker_size = 3000 / MDP.grid_size
 
     # create aeroplane-shaped marker
     taper_offset = 0.3
@@ -99,10 +99,17 @@ def play_episode(MDP, policy, history):
             ax.set_xlabel('x')
             ax.set_ylabel('y')
             ax.set_zlabel('z')
-            plt.xticks(np.arange(MDP.grid_size))
-            plt.yticks(np.arange(MDP.grid_size))
-            ax.set_zticks(np.arange(MDP.max_altitude + 1))
-            
+            if MDP.grid_size <= 20:
+                plt.xticks(np.arange(MDP.grid_size))
+                plt.yticks(np.arange(MDP.grid_size))
+            else:
+                plt.xticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
+                plt.yticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
+            if MDP.max_altitude <= 20:
+                ax.set_zticks(np.arange(MDP.max_altitude + 1))
+            else:
+                ax.set_zticks(np.arange(0, MDP.max_altitude + 1, np.ceil(MDP.max_altitude/10)))
+
             # plot obstacle as a sort of building up to MDP.max_altitude.
             # need to make this proper, just a crappy demo as it stands.
             if MDP.obstacles.size != 0:
@@ -132,7 +139,7 @@ def play_episode(MDP, policy, history):
 
 
 
-    ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=300, repeat=False)
+    ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=150, repeat=False)
     plt.show()
 
 def simulate_policy(MDP, policy, no_episodes=5):

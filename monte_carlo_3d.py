@@ -117,7 +117,7 @@ def play_episode(MDP, policy, history):
         return ax.scatter(history[i][1], history[i][2], history[i][0], marker="P",  c='brown', s=marker_size, alpha=1),
 
 
-    ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=100, repeat=False)
+    ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=150, repeat=False)
     plt.show()
 
 def simulate_policy(MDP, policy, no_episodes=5):
