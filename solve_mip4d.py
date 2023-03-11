@@ -51,6 +51,7 @@ def solve_mip(ampl):
     return ampl, solve_time
 
 # ampl object is the input here
+# NO LONGER USED
 def mdp_from_mip(ampl):
     max_altitude = int(ampl.get_parameter('T').value())
     grid_size = int(ampl.get_parameter('grid_size').value())

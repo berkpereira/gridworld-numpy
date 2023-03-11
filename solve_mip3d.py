@@ -9,14 +9,22 @@ from amplpy import AMPL, Environment
 path_to_ampl_exec = "/Users/gabrielpereira/ampl.macos64"
 path_to_this_repo = "/Users/gabrielpereira/repos/gridworld-numpy"
 
-def solve_mip():
-    # load ampl installation
+def initialise_ampl():
+    path_to_ampl_exec = "/Users/gabrielpereira/ampl.macos64"
+    path_to_this_repo = "/Users/gabrielpereira/repos/gridworld-numpy"
     ampl = AMPL(Environment(path_to_ampl_exec))
+    ampl.read(path_to_this_repo + "/ampl4d/new-mip-4d.mod")
+    ampl.read_data(path_to_this_repo + "/ampl4d/mip-4d.dat")
+    return ampl
+
+def solve_mip(ampl):
+    # load ampl installation
+    #ampl = AMPL(Environment(path_to_ampl_exec))
     #print(ampl.get_option('version')) # check version, etc.
 
     # read model and data files
-    ampl.read(path_to_this_repo + "/ampl3d/mip-3d.mod")
-    ampl.read_data(path_to_this_repo + "/ampl3d/mip-3d.dat")
+    #ampl.read(path_to_this_repo + "/ampl3d/mip-3d.mod")
+    #ampl.read_data(path_to_this_repo + "/ampl3d/mip-3d.dat")
 
     # specify the solver to use
     ampl.option["solver"] = "cplex"
@@ -25,18 +33,23 @@ def solve_mip():
     st = time.time()
     ampl.solve()
     et = time.time()
-    print(f'Done in {et - st} seconds.')
+    solve_time = et - st
+    print(f'Done in {solve_time} seconds.')
 
 
     # stop here if the model was not solved
-    assert ampl.get_value("solve_result") == "solved"
+    try:
+        assert ampl.get_value("solve_result") == "solved"
+    except:
+        return False, False
 
-    # get number of turns in solution (cost function)
+    # get landing error (cost function)
     objective = ampl.get_objective('LandingError')
     print(f'Objective function (landing error): {objective.value()}')
-    return ampl
+    return ampl, solve_time
 
 # ampl object is the input here
+# NO LONGER USED
 def mdp_from_mip(ampl):
     max_altitude = int(ampl.get_parameter('T').value())
     grid_size = int(ampl.get_parameter('grid_size').value())
@@ -46,7 +59,7 @@ def mdp_from_mip(ampl):
     MDP = MarkovGridWorld(grid_size=grid_size, obstacles =np.array([], dtype='int32') , landing_zone=landing_zone, max_altitude=max_altitude)
     return MDP
 
-def reshape_velocities(velocities_vec):
+def get_velocities(velocities_vec):
     reshaped = np.zeros(shape=(int(velocities_vec.shape[0] / 4), 4))
     for i in range(reshaped.shape[0]):
         reshaped[i,:] = (velocities_vec[4*i:(4*i) + 4].flatten())
@@ -82,23 +95,79 @@ def convert_to_history(velocities, initial_pd):
         history[i,0] = altitude
     return history
 
+# this functions takes as input an ampl objective with already read model and data files to begin with.
+# Only then does it modifie the model data in accordance with the input MDP.    
+def mip_history_and_actions_from_mdp(MDP, initial_state, ampl):
+    mip_max_altitude = ampl.get_parameter('T')
+    mip_max_altitude.set(MDP.max_altitude)
+
+    mip_landing_zone = ampl.get_parameter('landing')
+    mip_landing_zone.set_values([MDP.landing_zone[0], MDP.landing_zone[1]])
+
+    mip_grid_size = ampl.get_parameter('grid_size')
+    mip_grid_size.set(MDP.grid_size)
+
+    mip_initial_state = ampl.get_parameter('initial')
+    mip_initial_state.set_values([initial_state[0], initial_state[1]])
+
+    # Here we will also address obstacles at some point.
+    mip_no_obstacles = ampl.get_parameter('no_obstacles')
+    mip_no_obstacles.set(MDP.obstacles.shape[0])
+    mip_obstacles = ampl.get_parameter('obstacles')
+    for i in range(MDP.obstacles.shape[0]):
+        mip_obstacles[i,0] = int(MDP.obstacles[i,0])
+        mip_obstacles[i,1] = int(MDP.obstacles[i,1])
+
+
+    # solve integer optimisation problem
+    ampl, solve_time = solve_mip(ampl)
+
+    # solution failed!
+    if ampl is False: # return number of arguments equal to regular output! thus doesn't break unpacking when called 
+        return False, False, False
+
+    # Fetch velocities and put them into a suitable data shape.
+    velocities = ampl.get_variable('Velocity')
+    velocities = velocities.get_values().to_pandas()
+    velocities = velocities.to_numpy()
+    velocities = get_velocities(velocities)
+
+    # convert initial state and velocity information into a history matrix:
+    initial_pd = ampl.get_parameter('initial').get_values().to_pandas()
+    history = convert_to_history(velocities, initial_pd)
+
+    actions = actions_from_mip_variables(velocities, MDP.max_altitude)
+
+    return history, actions, solve_time    
+
+# this function expects velocites in a (T+1)x4 matrix of binary variables
+def actions_from_mip_variables(velocities, max_altitude):
+    actions = np.zeros(shape=max_altitude, dtype='int32')
+
+    # first action must always be 0. This is because the MIP formulation is limited in its first time step to the initial velocity,
+    # whereas the DP formulation allows the agent to "override" the initial velocity using its first action.
+    for i in range(1, max_altitude):
+        if np.array_equal(velocities[i], velocities[i-1]):
+            actions[i] = 0
+        elif np.where(velocities[i] == 1)[0][0] == np.where(velocities[i-1] == 1)[0][0] + 1:
+            actions[i] = 2
+        elif np.where(velocities[i] == 1)[0][0] == np.where(velocities[i-1] == 1)[0][0] - 1:
+            actions[i] = 1
+        elif velocities[i,0] == 1: # edge case no. 1
+            actions[i] = 2
+        else: # edge case no. 2
+            actions[i] = 1
     
-    
-    
-
-# solve and get optimal variables
-ampl = solve_mip()
-velocities = ampl.get_variable('Velocity')
-velocities = velocities.get_values().to_pandas()
-velocities = velocities.to_numpy()
-velocities = reshape_velocities(velocities)
-
-initial_pd = ampl.get_parameter('initial').get_values().to_pandas()
-
-print('History:')
-print(convert_to_history(velocities, initial_pd))
-
-MDP = mdp_from_mip(ampl)
-
-history = convert_to_history(velocities, initial_pd)
-play_episode(MDP, None, history)
+    # quite different for 3D state space case:
+    for i in range(max_altitude):
+        if velocities[i,0] == 1:
+            actions[i] = 1
+        elif velocities[i,1] == 1:
+            actions[i] = 2
+        elif velocities[i,2] == 1:
+            actions[i] = 3
+        elif velocities[i,3] == 1:
+            actions[i] = 4
+        else: # must be stay put
+            actions[i] = 0
+    return actions
