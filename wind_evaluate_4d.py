@@ -46,28 +46,35 @@ def evaluate_policy_winds(evaluation_MDP, no_evaluations, eval_wind_params, trai
         j += 1
     return evaluations
 
-def plot_wind_evaluations(evaluations_array_txt_file_name, eval_wind_params, train_wind_params):
+def plot_wind_evaluations(evaluations_array_txt_file_name, eval_wind_params, train_wind_params, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name)
     no_eval_wind_params = len(eval_wind_params)
     no_mosaic_rows = 3
 
+    plt.figure(figsize=(12,9))
+
     for j in range(no_eval_wind_params):
         plt.subplot(no_mosaic_rows, int(np.ceil(no_eval_wind_params / no_mosaic_rows)), j+1)
-        plt.plot(train_wind_params, evaluations[:,j], 'r--*')
-        plt.ylim(np.amin(evaluations), 0)
+        plt.plot(train_wind_params, evaluations[:,j], 'r-*')
+        #plt.ylim(np.amin(evaluations), 0)
+        plt.ylim(0, 0.8)
         plt.grid(True)
         plt.title('Evaluation wind: ' + str(round(eval_wind_params[j],2)))
     plt.tight_layout()
+    
+    if save:
+        plt.savefig('out_plot.pdf')
+    
     plt.show()
 
     
     
 def save_results_info(evaluations_array, no_evaluations, eval_wind_params, train_wind_params):
-    results_file_name = 'wind_evaluations.txt'
-    info_file_name = 'wind_evaluations_info.txt'
+    results_file_name = 'results/4d/training_wind/wind_evaluations_array.txt'
+    info_file_name = 'results/4d/training_wind/wind_evaluations_info.txt'
     confirmed = input(f'About to write results to {results_file_name} and info to {info_file_name}. Proceed? (y/n)') == 'y'
     if confirmed:
-        np.savetxt('wind_evaluations.txt', evaluations_array)
+        np.savetxt(results_file_name, evaluations_array)
 
         lines = [f'Information on the {results_file_name} file.',
              '',
@@ -75,7 +82,7 @@ def save_results_info(evaluations_array, no_evaluations, eval_wind_params, train
              'Evaluated policies were trained with the following wind parameters: ' + str(train_wind_params),
              'Policies were evaluated in MDPs with the following wind parameters: ' + str(eval_wind_params)]
     
-        with open('wind_evaluations_info.txt', 'w') as f:
+        with open(info_file_name, 'w') as f:
             for line in lines:
                 f.write(line)
                 f.write('\n')
@@ -99,20 +106,18 @@ if __name__ == "__main__":
     train_wind_params = np.linspace(0,1,21)
     no_evaluations = 3000
 
-    """
-    evaluations = evaluate_policy_winds(evaluation_MDP, no_evaluations, eval_wind_params, train_wind_params)
-    print(f'Evaluated policies using {no_evaluations} simulations each.')
-    print(f'Evaluated policies trained with following wind parameters (each row corresponds to a policy): {train_wind_params}')
-    print(f'Evaluated policies using MDPs with following wind parameters (each column corresponds to an evaluation MDP): {eval_wind_params}')
-    print(evaluations)
-    """
+    want_evaluate = False
 
-
-    evaluations = np.loadtxt('wind_evaluations.txt')
-    save_results_info(evaluations, no_evaluations, eval_wind_params, train_wind_params)
+    if want_evaluate:
+        evaluations = evaluate_policy_winds(evaluation_MDP, no_evaluations, eval_wind_params, train_wind_params)
+        print(f'Evaluated policies using {no_evaluations} simulations each.')
+        print(f'Evaluated policies trained with following wind parameters (each row corresponds to a policy): {train_wind_params}')
+        print(f'Evaluated policies using MDPs with following wind parameters (each column corresponds to an evaluation MDP): {eval_wind_params}')
+        print(evaluations)
+        save_results_info(evaluations, no_evaluations, eval_wind_params, train_wind_params)
     
     evaluations_file = 'results/4d/training_wind/wind_evaluations_array.txt'
-    plot_wind_evaluations(evaluations_file, eval_wind_params, train_wind_params)
+    plot_wind_evaluations(evaluations_file, eval_wind_params, train_wind_params, True)
 
 
 
