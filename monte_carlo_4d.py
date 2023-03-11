@@ -249,11 +249,15 @@ def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no
 
 
 if __name__ == '__main__':
+    
+    """
     os.system('clear')
     buildings = np.array([[1,1], [3,2], [4,1]], ndmin=2, dtype='int32')
     MDP = MarkovGridWorld(grid_size = 6, max_altitude=6, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=0.90)
     no_episodes = int(np.floor(len(MDP.state_space) / 2))
     no_steps = int(np.floor(len(MDP.state_space) / 40))
+
+    
     print(f'Monte Carlo, number of episodes per improvement: {no_episodes}')
     print(f'Monte Carlo, number of improvement steps: {no_steps}')
     print()
@@ -263,3 +267,19 @@ if __name__ == '__main__':
     input('Press Enter to continue...')
     new_policy, new_policy_array = monte_carlo_policy_iteration(random_walk, MDP, 0.2, no_episodes, no_steps)
     simulate_policy(MDP, new_policy, 10)
+    """
+
+
+    evaluation_grid_size = 8
+    evaluation_obstacles = np.array([[3,2], [4,5], [6,3]], dtype='int32')
+    evaluation_landing_zone = np.array([4,4], dtype='int32')
+    evaluation_max_altitude = 10
+    evaluation_prob_direction = 1
+    evaluation_MDP = MarkovGridWorld(grid_size=evaluation_grid_size, direction_probability=evaluation_prob_direction, obstacles=evaluation_obstacles, landing_zone=evaluation_landing_zone, max_altitude=evaluation_max_altitude)
+    
+    file_name = 'results/4d/training_wind/trained_array_wind_0,95'
+    file_name = file_name.replace('.', ',')
+    file_name = file_name + '.npy'
+    policy_array = np.load(file_name)
+    policy = array_to_policy(policy_array, evaluation_MDP)
+    simulate_policy(evaluation_MDP, policy, 10)

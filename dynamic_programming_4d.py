@@ -132,6 +132,7 @@ class MarkovGridWorld():
 
     # must redefine the reward to be spread out on the ground.
     # however, prevent any reward from being there at the obstacles! can't crash into a building at ground level and expect to get any reward!
+    """
     def reward(self, state):
         if state[0] == 0:
             for obstacle in self.obstacles:
@@ -142,6 +143,20 @@ class MarkovGridWorld():
             # return norm.pdf(manhattan_distance) / norm.pdf(0) # normalise against the max reward available
         else:
             return 0
+    """
+
+    def reward(self, state):
+        for obstacle in self.obstacles:
+            if np.array_equal(state[2:], obstacle):
+                    return -2 * 1000 * self.grid_size
+        
+        # landed without crash, because we've checked
+        if state[0] == 0:
+            manhattan_distance = cityblock(state[2:], self.landing_zone)
+            return - manhattan_distance
+        
+        return 0
+
 
     # returns the probability of a successor state, given a current state and an action.
     # crucial to define these in this generalised form, in order to implement general policy evaluation algorithm.

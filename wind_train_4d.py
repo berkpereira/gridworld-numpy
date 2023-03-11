@@ -20,7 +20,6 @@ def train_policies(evaluation_MDP, no_wind_parameters):
 
 if __name__ == "__main__":
     evaluation_grid_size = 8
-    evaluation_direction_prob = 0.7
     evaluation_obstacles = np.array([[3,2], [4,5], [6,3]], dtype='int32')
     evaluation_landing_zone = np.array([4,4], dtype='int32')
     evaluation_max_altitude = 10
