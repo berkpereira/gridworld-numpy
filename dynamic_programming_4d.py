@@ -145,6 +145,7 @@ class MarkovGridWorld():
             return 0
     """
 
+    """
     def reward(self, state):
         for obstacle in self.obstacles:
             if np.array_equal(state[2:], obstacle):
@@ -156,6 +157,19 @@ class MarkovGridWorld():
             return - manhattan_distance
         
         return 0
+    """
+
+    # yet another possible reward function
+    def reward(self, state):
+        if state[0] == 0:
+            for obstacle in self.obstacles:
+                if np.array_equal(state[2:], obstacle):
+                    return 0
+            else:
+                manhattan_distance = cityblock(state[2:], self.landing_zone)
+                return 1 / (manhattan_distance + 1)
+        return 0
+
 
 
     # returns the probability of a successor state, given a current state and an action.
