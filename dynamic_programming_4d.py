@@ -138,7 +138,8 @@ class MarkovGridWorld():
                 if np.array_equal(state[2:], obstacle):
                     return 0
             manhattan_distance = cityblock(state[2:], self.landing_zone)
-            return norm.pdf(manhattan_distance) / norm.pdf(0) # normalise against the max reward available
+            return - manhattan_distance
+            # return norm.pdf(manhattan_distance) / norm.pdf(0) # normalise against the max reward available
         else:
             return 0
 
