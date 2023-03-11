@@ -274,7 +274,7 @@ if __name__ == '__main__':
     evaluation_obstacles = np.array([[3,2], [4,5], [6,3]], dtype='int32')
     evaluation_landing_zone = np.array([4,4], dtype='int32')
     evaluation_max_altitude = 10
-    evaluation_prob_direction = 1
+    evaluation_prob_direction = 0.8
     evaluation_MDP = MarkovGridWorld(grid_size=evaluation_grid_size, direction_probability=evaluation_prob_direction, obstacles=evaluation_obstacles, landing_zone=evaluation_landing_zone, max_altitude=evaluation_max_altitude)
     
     file_name = 'results/4d/training_wind/trained_array_wind_0,95'
