@@ -2,8 +2,8 @@ import numpy as np
 import dynamic_programming_4d as dp4
 import monte_carlo_4d as mc4
 
-def train_policies(evaluation_MDP):
-    for wind in np.linspace(0.0, 1.0, 6): # default is 50 different points
+def train_policies(evaluation_MDP, no_wind_parameters):
+    for wind in np.linspace(0.0, 1.0, no_wind_parameters): # default is 50 different points
         wind = round(wind, 2) # round to 2 decimal places
         # training MDP same as evaluation MDP except for direction_probability
         training_MDP = dp4.MarkovGridWorld(grid_size=evaluation_MDP.grid_size, direction_probability=wind, obstacles=evaluation_MDP.obstacles, landing_zone=evaluation_MDP.landing_zone, max_altitude=evaluation_MDP.max_altitude)
@@ -25,5 +25,6 @@ if __name__ == "__main__":
     evaluation_landing_zone = np.array([4,4], dtype='int32')
     evaluation_max_altitude = 10
 
-    evaluation_MDP = dp4.MarkovGridWorld(grid_size=evaluation_grid_size, direction_probability=evaluation_direction_prob, obstacles=evaluation_obstacles, landing_zone=evaluation_landing_zone, max_altitude=evaluation_max_altitude)
-    train_policies(evaluation_MDP)
+    # direction_probability of evaluation_MDP doesn NOT matter in this process
+    evaluation_MDP = dp4.MarkovGridWorld(grid_size=evaluation_grid_size, direction_probability=1, obstacles=evaluation_obstacles, landing_zone=evaluation_landing_zone, max_altitude=evaluation_max_altitude)
+    train_policies(evaluation_MDP, 21)
