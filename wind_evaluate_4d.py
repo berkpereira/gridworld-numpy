@@ -47,7 +47,7 @@ def evaluate_policy_winds(evaluation_MDP, no_evaluations, eval_wind_params, trai
     return evaluations
 
 def plot_wind_evaluations(evaluations_array_txt_file_name, eval_wind_params, train_wind_params, save=False):
-    evaluations = np.loadtxt(evaluations_array_txt_file_name)
+    evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=2)
     no_eval_wind_params = len(eval_wind_params)
     no_mosaic_rows = 3
 
@@ -69,9 +69,13 @@ def plot_wind_evaluations(evaluations_array_txt_file_name, eval_wind_params, tra
 
     
     
-def save_results_info(evaluations_array, no_evaluations, eval_wind_params, train_wind_params):
-    results_file_name = 'results/4d/training_wind/wind_evaluations_array.txt'
-    info_file_name = 'results/4d/training_wind/wind_evaluations_info.txt'
+def save_results_info(evaluations_array, no_evaluations, eval_wind_params, train_wind_params, this_dir=True):
+    if this_dir is False:
+        results_file_name = 'results/4d/training_wind/wind_evaluations_array.txt'
+        info_file_name = 'results/4d/training_wind/wind_evaluations_info.txt'
+    else:
+        results_file_name = 'wind_evaluations_array.txt'
+        info_file_name = 'wind_evaluations_info.txt'
     confirmed = input(f'About to write results to {results_file_name} and info to {info_file_name}. Proceed? (y/n)') == 'y'
     if confirmed:
         np.savetxt(results_file_name, evaluations_array)
@@ -90,12 +94,42 @@ def save_results_info(evaluations_array, no_evaluations, eval_wind_params, train
     else:
         print('Did not confirm. Files NOT written.')
 
+def evaluate_random_walk(evaluation_MDP, no_evaluations, eval_wind_params):
+    # for each evaluation wind parameter, we have a column vector of the average scores of policies TRAINED with different wind parameters
+    MDP = dp4.MarkovGridWorld(evaluation_MDP.grid_size, 1, evaluation_MDP.direction_probability, evaluation_MDP.obstacles, evaluation_MDP.landing_zone, evaluation_MDP.max_altitude)
+    
+    no_eval_wind_params = len(eval_wind_params)
+    evaluations = np.zeros(shape=(1, no_eval_wind_params))
+    j = 0
+    for eval_wind in eval_wind_params:
+        eval_wind = round(eval_wind, 2)
+
+        # set up MDP used to run simulations
+        MDP = dp4.MarkovGridWorld(evaluation_MDP.grid_size, 1, eval_wind, evaluation_MDP.obstacles, evaluation_MDP.landing_zone, evaluation_MDP.max_altitude)
+        
+        policy = dp4.random_walk
+
+
+        cumulative_score = 0
+        # run {no_evaluations} simulations using the fetched policy and record returns
+        for _ in range(no_evaluations):
+
+            history = mc4.generate_episode(MDP, policy)
+            cumulative_score += history[-1,-1]
+        average_score = cumulative_score / no_evaluations
+        evaluations[0,j] = average_score    
+        
+        j += 1
+    return evaluations
+
+
 
 if __name__ == "__main__":
     os.system('clear')
 
     import wind_choose_4d_const as wconst4
-    want_evaluate = False
+    want_evaluate = True
+
 
     if want_evaluate:
         evaluations = evaluate_policy_winds(wconst4.evaluation_MDP, wconst4.no_evaluations, wconst4.eval_wind_params, wconst4.train_wind_params)
@@ -103,9 +137,11 @@ if __name__ == "__main__":
         print(f'Evaluated policies trained with following wind parameters (each row corresponds to a policy): {wconst4.train_wind_params}')
         print(f'Evaluated policies using MDPs with following wind parameters (each column corresponds to an evaluation MDP): {wconst4.eval_wind_params}')
         print(evaluations)
-        save_results_info(evaluations, wconst4.no_evaluations, wconst4.eval_wind_params, wconst4.train_wind_params)
-    
-    evaluations_file = 'results/4d/training_wind/wind_evaluations_array.txt'
+        save_results_info(evaluations, wconst4.no_evaluations, wconst4.eval_wind_params, wconst4.train_wind_params, this_dir=True)
+
+
+    evaluations_file = 'results/4d/training_wind/random_walk_evaluation_array.txt'
+    evaluations_file = 'wind_evaluations_array.txt'
     plot_wind_evaluations(evaluations_file, wconst4.eval_wind_params, wconst4.train_wind_params, True)
 
 
