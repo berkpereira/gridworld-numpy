@@ -94,30 +94,19 @@ def save_results_info(evaluations_array, no_evaluations, eval_wind_params, train
 if __name__ == "__main__":
     os.system('clear')
 
-    # define the evaluation MDP.
-    # keep in mind the direction_probability used here does NOT MATTER
-    evaluation_grid_size = 8
-    evaluation_obstacles = np.array([[3,2], [4,5], [6,3]], dtype='int32')
-    evaluation_landing_zone = np.array([4,4], dtype='int32')
-    evaluation_max_altitude = 10
-    evaluation_MDP = dp4.MarkovGridWorld(grid_size=evaluation_grid_size, direction_probability=1, obstacles=evaluation_obstacles, landing_zone=evaluation_landing_zone, max_altitude=evaluation_max_altitude)
-
-    eval_wind_params = np.linspace(0.50,1,11)
-    train_wind_params = np.linspace(0,1,21)
-    no_evaluations = 3000
-
+    import wind_choose_4d_const as wconst4
     want_evaluate = False
 
     if want_evaluate:
-        evaluations = evaluate_policy_winds(evaluation_MDP, no_evaluations, eval_wind_params, train_wind_params)
-        print(f'Evaluated policies using {no_evaluations} simulations each.')
-        print(f'Evaluated policies trained with following wind parameters (each row corresponds to a policy): {train_wind_params}')
-        print(f'Evaluated policies using MDPs with following wind parameters (each column corresponds to an evaluation MDP): {eval_wind_params}')
+        evaluations = evaluate_policy_winds(wconst4.evaluation_MDP, wconst4.no_evaluations, wconst4.eval_wind_params, wconst4.train_wind_params)
+        print(f'Evaluated policies using {wconst4.no_evaluations} simulations each.')
+        print(f'Evaluated policies trained with following wind parameters (each row corresponds to a policy): {wconst4.train_wind_params}')
+        print(f'Evaluated policies using MDPs with following wind parameters (each column corresponds to an evaluation MDP): {wconst4.eval_wind_params}')
         print(evaluations)
-        save_results_info(evaluations, no_evaluations, eval_wind_params, train_wind_params)
+        save_results_info(evaluations, wconst4.no_evaluations, wconst4.eval_wind_params, wconst4.train_wind_params)
     
     evaluations_file = 'results/4d/training_wind/wind_evaluations_array.txt'
-    plot_wind_evaluations(evaluations_file, eval_wind_params, train_wind_params, True)
+    plot_wind_evaluations(evaluations_file, wconst4.eval_wind_params, wconst4.train_wind_params, True)
 
 
 

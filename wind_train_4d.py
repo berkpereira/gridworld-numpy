@@ -19,11 +19,5 @@ def train_policies(evaluation_MDP, no_wind_parameters):
 
 
 if __name__ == "__main__":
-    evaluation_grid_size = 8
-    evaluation_obstacles = np.array([[3,2], [4,5], [6,3]], dtype='int32')
-    evaluation_landing_zone = np.array([4,4], dtype='int32')
-    evaluation_max_altitude = 10
-
-    # direction_probability of evaluation_MDP doesn NOT matter in this process
-    evaluation_MDP = dp4.MarkovGridWorld(grid_size=evaluation_grid_size, direction_probability=1, obstacles=evaluation_obstacles, landing_zone=evaluation_landing_zone, max_altitude=evaluation_max_altitude)
-    train_policies(evaluation_MDP, 21)
+    import wind_choose_4d_const as wconst4
+    train_policies(wconst4.evaluation_MDP, 21)
