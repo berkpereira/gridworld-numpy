@@ -12,6 +12,6 @@ evaluation_max_altitude = 10
 evaluation_MDP = dp4.MarkovGridWorld(grid_size=evaluation_grid_size, direction_probability=1, obstacles=evaluation_obstacles, landing_zone=evaluation_landing_zone, max_altitude=evaluation_max_altitude)
 
 # define parameters for training and evaluation
-eval_wind_params = np.linspace(0.50,1,11)
+eval_wind_params = np.linspace(0,1,21)
 train_wind_params = np.linspace(0,1,21)
 no_evaluations = 3000
