@@ -73,7 +73,7 @@ def sample_policy(MDP, policy, state):
     sampled_action = rng.choice(len(MDP.action_space), p=stochastics)
     return sampled_action
 
-def play_episode(MDP, policy, history):
+def play_episode(MDP, policy, history, policy_name=None):
     fig = plt.figure(figsize=(12,9))
     ax = fig.add_subplot(projection="3d")
     ax.set_aspect('equal')
@@ -91,8 +91,11 @@ def play_episode(MDP, policy, history):
             ax.clear()
             if policy is None:
                 ax.set_title(f'Agent simulation from MIP solution.\nLanding zone (x,y): {tuple(MDP.landing_zone)}')
-            else:    
-                ax.set_title(f'Agent simulation under policy: {policy.__name__}\nDirection probability: {MDP.direction_probability}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
+            else:
+                if policy_name is None:    
+                    ax.set_title(f'Agent simulation under policy: {policy.__name__}\nDirection probability: {MDP.direction_probability}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
+                else:
+                    ax.set_title(f'Agent simulation under policy: {policy_name}\nDirection probability: {MDP.direction_probability}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
             ax.axes.set_xlim3d(left=0, right=MDP.grid_size - 1)
             ax.axes.set_ylim3d(bottom=0, top=MDP.grid_size - 1)
             ax.axes.set_zlim3d(bottom=0, top=MDP.max_altitude)
@@ -142,9 +145,11 @@ def play_episode(MDP, policy, history):
     ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=150, repeat=False)
     plt.show()
 
-def simulate_policy(MDP, policy, no_episodes=5):
-    print(f'Generating episodes with policy: {policy.__name__}')
-    #os.system(f'say "Generating episodes with policy: {policy.__name__}"')
+def simulate_policy(MDP, policy, no_episodes=5, policy_name=None):
+    if policy_name is None:
+        print(f'Generating episodes with policy: {policy.__name__}')
+    else:
+        print(f'Generating episodes with policy: {policy_name}')
     input('Press Enter to continue...')
     print()
     for i in range(no_episodes):
@@ -153,7 +158,7 @@ def simulate_policy(MDP, policy, no_episodes=5):
         print('Episode history (state, then reward):')
         print(history)
         print()
-        play_episode(MDP, policy, history)
+        play_episode(MDP, policy, history, policy_name)
 
 def run_random_then_optimal(MDP, policy, no_episodes):
     os.system('clear')
@@ -268,18 +273,3 @@ if __name__ == '__main__':
     new_policy, new_policy_array = monte_carlo_policy_iteration(random_walk, MDP, 0.2, no_episodes, no_steps)
     simulate_policy(MDP, new_policy, 10)
     """
-
-
-    evaluation_grid_size = 8
-    evaluation_obstacles = np.array([[3,2], [4,5], [6,3]], dtype='int32')
-    evaluation_landing_zone = np.array([4,4], dtype='int32')
-    evaluation_max_altitude = 10
-    evaluation_prob_direction = 0.8
-    evaluation_MDP = MarkovGridWorld(grid_size=evaluation_grid_size, direction_probability=evaluation_prob_direction, obstacles=evaluation_obstacles, landing_zone=evaluation_landing_zone, max_altitude=evaluation_max_altitude)
-    
-    file_name = 'results/4d/training_wind/trained_array_wind_0,95'
-    file_name = file_name.replace('.', ',')
-    file_name = file_name + '.npy'
-    policy_array = np.load(file_name)
-    policy = array_to_policy(policy_array, evaluation_MDP)
-    simulate_policy(evaluation_MDP, policy, 10)
