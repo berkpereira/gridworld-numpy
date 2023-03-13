@@ -343,12 +343,14 @@ def value_to_greedy_policy(value_function, MDP):
 
 # carry out policy iteration up to some limit number of iterations, or until policy stabilises
 # policy_evaluation(policy, MDP, epsilon, max_iterations)
-def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_iterations=10):
+def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_iterations=10, train_time=False):
     iteration_count = 1
     policy_is_stable = False
     current_policy = policy
     initial_value = None
     current_policy_array = np.ones(shape=MDP.problem_shape, dtype='int32') * -10 # initialise greedy policy array to a bogus instance
+
+    st = time.time()
     while policy_is_stable is False and iteration_count <= improvement_max_iterations:
         # as per Sutton Barto 2nd, chapter 4.3, next iteration is better-converging if we
         # start with the previous value estimate, hence the assignment into initial_value
@@ -371,13 +373,19 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
         current_policy = array_to_policy(new_policy_array, MDP)
         iteration_count += 1
     
+    et = time.time()
     print('Final policy array:')
-    print(current_policy_array[:-1])
+    print(current_policy_array[:MDP.max_altitude + 1])
     print()
-    return current_policy, current_policy_array
+    
+    if train_time is False:
+        return current_policy, current_policy_array
+    else:
+        training_time = et - st
+        return current_policy, current_policy_array, training_time
 
-def value_iteration(policy, MDP, max_iterations):
-    return policy_iteration(policy, MDP, evaluation_max_iterations=1, improvement_max_iterations=max_iterations)
+def value_iteration(policy, MDP, max_iterations, train_time=False):
+    return policy_iteration(policy, MDP, evaluation_max_iterations=1, improvement_max_iterations=max_iterations, train_time=train_time)
 
 # input policy to evaluate
 def run_policy_evaluation(use_policy):
