@@ -7,7 +7,7 @@ import monte_carlo_4d as mc4
 
 # this will take an MDP problem, solve it via MIP, simulate time steps by sampling MDP dynamics, recompute MIP solutions as needed if the real outcomes
 # deviate from the expected ones at any point.
-# initial state is just a 2-element array, as expected in the MIP functions!
+# ATTENTION: initial state is just a 2-element array, as expected in the MIP functions!
 def mip_simulate_closed_loop(sim_MDP, sim_mip_initial_state, sim_initial_velocity_index):
     MDP = sim_MDP
     
@@ -37,9 +37,16 @@ def mip_simulate_closed_loop(sim_MDP, sim_mip_initial_state, sim_initial_velocit
         # the MIP problem was insoluble! if problem was insoluble, the episode is just kind of cut-off suddenly. This will always happen NEXT TO
         # EITHER AN OBSTACLE OR A BOUNDARY!
         if mip_history is False:
-            sim_history[sim_history_index, :4] = experienced_next_state
-            sim_history = sim_history[:(sim_history_index + 1)]
-            break
+            try: # this will fail if the MIP could not be solved to begin with
+                sim_history[sim_history_index, :4] = experienced_next_state
+                sim_history = sim_history[:(sim_history_index + 1)]
+                break
+            
+            # once more, in case of error, return same number of argument as in successful case.
+            # this makes it easier to unpack as usual
+            except:
+                return False, False, False
+
 
         step = 0
         # first in this sequence will always match, since it's the initial state
@@ -54,7 +61,7 @@ def mip_simulate_closed_loop(sim_MDP, sim_mip_initial_state, sim_initial_velocit
             if (step + 1) < mip_history.shape[0]:
                 experienced_next_state = MDP.state_transition(mip_history[step,:4], actions[step])
 
-        #print('broke while condition')
+
         # if we've already filled out the entire simulated history down to the ground, end here.
         if sim_history_index >= sim_history.shape[0]:
             break
@@ -77,6 +84,32 @@ def mip_simulate_closed_loop(sim_MDP, sim_mip_initial_state, sim_initial_velocit
 
     return sim_history, sim_mip_solutions, sim_compute_time
 
+# STILL HAVE TO ITERATE THIS OVER MULTIPLE TIMES, OBVIOUSLY
+# AND THEN RETURN THE AVERAGE "SCORE"
+def evaluate_mip(eval_MDP, no_evaluations):
+    
+    # we first need to generate a random initial state that isn't infeasible straight away,
+    # e.g., a boundary state heading into the boundary, stuff which the IP would have issues computing to begin with
+    sim_history = False
+    while sim_history is False:
+        sim_initial_velocity_index = np.random.randint(0,4)
+        sim_mip_initial_state = np.array([np.random.randint(0, eval_MDP.grid_size), np.random.randint(0, eval_MDP.grid_size)], dtype='int32')
+        sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(sim_MDP=eval_MDP, sim_mip_initial_state=sim_mip_initial_state, sim_initial_velocity_index=sim_initial_velocity_index)
+
+    # did not get to land, for whatever reason
+    # need to check whether it:
+    # CASE 1: hit an obstacle or was bound to and hence couldn't solve the MIP from there.
+    # CASE 2: it just found itself going against a boundary and hence couldn't solve MIP from there.
+    
+    # CASE 1 must be negatively reflected in the average score, consistently with the way we come to do it with RL
+    # CASE 2 must not. not sure how to handle these cases, but perhaps, at least for reasonably sized problems, it's best to
+    # just pretend they didn't happen and keep simulating from there.
+    if sim_history[0,0] > 0:
+        pass
+
+    # when we break out of the while condition it means we've solved a problem that wasn't infeasible to begin with!
+    return sim_history, sim_mip_solutions, sim_compute_time, score
+
 
 
 
@@ -85,9 +118,14 @@ if __name__ == "__main__":
     #MDP_list = [dp4.MarkovGridWorld(grid_size=5, direction_probability=1, obstacles=np.array([[]]), landing_zone=np.array([0,0]), max_altitude=10),
     #            dp4.MarkovGridWorld(grid_size=4, direction_probability=1, obstacles=np.array([[]]), landing_zone=np.array([0,0]), max_altitude=5)]
     
-    test_MDP = dp4.MarkovGridWorld(grid_size=25, direction_probability=0.9, obstacles=np.array([[0,1], [10,0], [4,21], [13,6], [20,20]]), landing_zone=np.array([15,15]), max_altitude=80)
-    sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(sim_MDP=test_MDP, sim_mip_initial_state=np.array([5,5]), sim_initial_velocity_index=0)
-    print(sim_history)
-    print()
-    print(f"Number of MIP solutions: {sim_mip_solutions}.\nCumulative time spent computing MIP solutions: {sim_compute_time} seconds.")
-    mc4.play_episode(test_MDP, None, sim_history)
+    #test_MDP = dp4.MarkovGridWorld(grid_size=6, direction_probability=0.90, obstacles=np.array([[0,1], [10,0], [4,21], [13,6], [20,20]]), landing_zone=np.array([3,3]), max_altitude=30)
+    MDP = dp4.MarkovGridWorld(grid_size=4, direction_probability=0.5,obstacles=np.array([[0,0]]), landing_zone = np.array([1,1]), max_altitude = 12)
+    #sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(sim_MDP=MDP, sim_mip_initial_state=np.array([2,1]), sim_initial_velocity_index=2)
+    for i in range(3):
+        sim_history = evaluate_mip(eval_MDP=MDP, no_evaluations=0)
+        print(sim_history)
+        print()
+        print()
+        mc4.play_episode(MDP, None, sim_history)
+    #print(f"Number of MIP solutions: {sim_mip_solutions}.\nCumulative time spent computing MIP solutions: {sim_compute_time} seconds.")
+    #mc4.play_episode(test_MDP, None, sim_history)
