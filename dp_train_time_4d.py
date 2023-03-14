@@ -35,31 +35,6 @@ def plot_train_times(train_times_df, save=False):
     
     plt.show()
 
-
-"""
-def plot_wind_evaluations(evaluations_array_txt_file_name, eval_wind_params, train_wind_params, save=False):
-    evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=2)
-    no_eval_wind_params = len(eval_wind_params)
-    no_mosaic_rows = 3
-
-    plt.figure(figsize=(12,9))
-
-    for j in range(no_eval_wind_params):
-        plt.subplot(no_mosaic_rows, int(np.ceil(no_eval_wind_params / no_mosaic_rows)), j+1)
-        plt.plot(train_wind_params, evaluations[:,j], 'r-*')
-        #plt.ylim(np.amin(evaluations), 0)
-        plt.ylim(0, 0.8)
-        plt.grid(True)
-        plt.title('Evaluation wind: ' + str(round(eval_wind_params[j],2)))
-    plt.tight_layout()
-    
-    if save:
-        plt.savefig('out_plot.pdf')
-    
-    plt.show()
-"""
-
-
 if __name__ == "__main__":
     grid_sizes = list(range(2,13))
     aspect_ratio = 2
