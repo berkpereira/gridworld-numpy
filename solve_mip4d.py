@@ -115,7 +115,7 @@ def mip_history_and_actions_from_mdp(MDP, initial_state, initial_velocity_index,
     mip_initial_state.set_values([initial_state[0], initial_state[1]])
 
     mip_initial_velocity_index = ampl.get_parameter('initial_velocity_index')
-    mip_initial_velocity_index.set(initial_velocity_index)
+    mip_initial_velocity_index.set(int(initial_velocity_index))
 
     # Here we will also address obstacles at some point.
     mip_no_obstacles = ampl.get_parameter('no_obstacles')
