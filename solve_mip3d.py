@@ -13,8 +13,8 @@ def initialise_ampl():
     path_to_ampl_exec = "/Users/gabrielpereira/ampl.macos64"
     path_to_this_repo = "/Users/gabrielpereira/repos/gridworld-numpy"
     ampl = AMPL(Environment(path_to_ampl_exec))
-    ampl.read(path_to_this_repo + "/ampl4d/new-mip-4d.mod")
-    ampl.read_data(path_to_this_repo + "/ampl4d/mip-4d.dat")
+    ampl.read(path_to_this_repo + "/ampl3d/new-mip-3d.mod")
+    ampl.read_data(path_to_this_repo + "/ampl3d/mip-3d.dat")
     return ampl
 
 def solve_mip(ampl):
@@ -144,6 +144,7 @@ def mip_history_and_actions_from_mdp(MDP, initial_state, ampl):
 def actions_from_mip_variables(velocities, max_altitude):
     actions = np.zeros(shape=max_altitude, dtype='int32')
 
+    """
     # first action must always be 0. This is because the MIP formulation is limited in its first time step to the initial velocity,
     # whereas the DP formulation allows the agent to "override" the initial velocity using its first action.
     for i in range(1, max_altitude):
@@ -157,6 +158,7 @@ def actions_from_mip_variables(velocities, max_altitude):
             actions[i] = 2
         else: # edge case no. 2
             actions[i] = 1
+    """
     
     # quite different for 3D state space case:
     for i in range(max_altitude):
@@ -171,3 +173,18 @@ def actions_from_mip_variables(velocities, max_altitude):
         else: # must be stay put
             actions[i] = 0
     return actions
+
+if __name__ == "__main__":
+    ampl = initialise_ampl()
+    #MDP = MarkovGridWorld(grid_size=20, obstacles=np.array([[4,4], [5,6], [13,4], [3,16], [12,12], [16,6]]), landing_zone = np.array([6,6]), max_altitude=20)
+    test_MDP = MarkovGridWorld(grid_size=5, direction_probability=1, obstacles=np.array([[0,0]]), landing_zone=np.array([2,2]), max_altitude=6)
+    initial_state = [1,1]
+
+    # mip_history_from_mdp is the crucial function here 
+    history, actions, solve_time = mip_history_and_actions_from_mdp(test_MDP, initial_state, ampl)
+    print(history)
+    print()
+    print(actions)
+    print()
+    print(f'Solve time: {solve_time} seconds')
+    play_episode(test_MDP, None, history)
