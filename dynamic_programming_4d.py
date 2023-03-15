@@ -8,22 +8,11 @@ from scipy.stats import norm
 def random_walk(action, state):
     return 1/3
 
-
-# just lands!
-def land_policy(action, state):
-    if action == 3:
+def straight_walk(action, state):
+    if action == 0:
         return 1
     else:
         return 0
-
-def turn_right_land(action, state):
-    if action == 1:
-        return 0.5
-    elif action == 3:
-        return 0.5
-    else:
-        return 0
-
 
 # this class codifies all the dynamics of the problem: a simple gridworld
 # as a starter in implementing GridWorld stochastics, I will try to program simple stochastics into this gridworld's dynamics
@@ -33,6 +22,7 @@ def turn_right_land(action, state):
 class MarkovGridWorld():
     def __init__(self, grid_size=3, discount_factor=1, direction_probability = 1, obstacles = np.array([0,0], ndmin=2, dtype='int32'), landing_zone = np.array([1, 1], dtype='int32'), max_altitude = None):
         self.grid_size = grid_size
+        self.crash_penalty = -10000
 
         # self.landing_zone given as a 2-element row vector
         self.landing_zone = landing_zone
@@ -170,6 +160,18 @@ class MarkovGridWorld():
                 return 1 / (manhattan_distance + 1)
         return 0
 
+    """
+    def reward(self, state):
+        for obstacle in self.obstacles:
+            if np.array_equal(state[2:], obstacle):
+                return self.crash_penalty # very negative number
+        
+        if state[0] == 0: # and not crashed, because we've checked
+            manhattan_distance = cityblock(state[2:], self.landing_zone)
+            return -manhattan_distance
+        else:
+            return 0
+    """
 
 
     # returns the probability of a successor state, given a current state and an action.
@@ -186,12 +188,21 @@ class MarkovGridWorld():
         # the best option is to treat it like another crashed state.
         # this way, it's still there, and it's possible for a bad policy or for environment dynamics stochasticity to
         # make the agent crash against it --> most realistic.
+        """
         for obstacle in self.obstacles:
             if np.array_equal(current_state[2:], obstacle):
                 if np.array_equal(successor_state, self.terminal_state):
                     return 1 # can only be taken to terminal_state
                 else:
                     return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
+        """
+        for obstacle in self.obstacles:
+            if np.array_equal(current_state[2:], obstacle):
+                if np.array_equal(successor_state, current_state):
+                    return 1 # can only get stuck in itself and reap huge penalties
+                else:
+                    return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
+
 
         # consider BOUNDARIES OF DOMAIN. agent was exploting these to just descend vertically, so we need to prevent it from being
         # able to do that. We must force the agent to turn it when it reaches a domain boundary.
@@ -798,12 +809,15 @@ def policy_evaluation(policy, MDP, initial_value, epsilon=0, max_iterations=50):
 
                 possible_successors = accessible_states(state, MDP)
                 for successor in possible_successors:
-                #for successor in MDP.state_space:
                     # CRUCIAL NOTE
                     # in the below line, I changed (as of 25/01/2023) what was MDP.reward(successor) to MDP.reward(state)
                     # this made the algorithms work towards optimal policies for the problem as of 25/01/2023, but change back if needed.
                     # SEE for-meeting14.md in UoB repo FOR DETAILS
                     sub_sum += MDP.environment_dynamics(successor, state, action) * (MDP.reward(state) + MDP.discount_factor * current_value[tuple(successor)])
+
+
+
+
                 current_value_update += policy(action,state) * sub_sum
             current_value[tuple(state)] = current_value_update
             change[tuple(state)] = abs(current_value[tuple(state)] - old_state_value)
@@ -842,6 +856,10 @@ def accessible_states(current_state, MDP):
     # in these cases, the only accessible state from there is the MDP's terminal state.
     if current_state[0] <= 0:
         return np.array(MDP.terminal_state, ndmin=2)
+    
+    for obstacle in MDP.obstacles:
+        if np.array_equal(current_state[2:], obstacle):
+            return np.array(current_state, ndmin=2)
 
     # now onto all other cases, where aircraft is still flying.
     # initialise output to be zeros of shape (len(MDP.action_space), 4).
@@ -1044,7 +1062,10 @@ def run_profiler(function):
         p.sort_stats("calls").print_stats()
 
 if __name__ == "__main__":
+    import monte_carlo_4d as mc4
     os.system('clear')
-    MDP = MarkovGridWorld(grid_size=3, max_altitude=3)
-    run_policy_iteration(random_walk, MDP, 5, 3)
-    #run_policy_evaluation(random_walk)
+    #buildings = np.array([[1,1], [3,2], [4,1]], ndmin=2, dtype='int32')
+    buildings = np.array([[1,0], [1,1]])
+    MDP = MarkovGridWorld(grid_size = 6, max_altitude=12, obstacles = buildings, landing_zone = np.array([0,0], dtype='int32'), direction_probability=1)
+    optimal_policy, optimal_policy_array = value_iteration(random_walk, MDP, np.inf)
+    mc4.simulate_policy(MDP, optimal_policy, 6)

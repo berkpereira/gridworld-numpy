@@ -3,6 +3,7 @@ import time
 import numpy as np
 from scipy.spatial.distance import cityblock
 from scipy.stats import norm
+import monte_carlo_3d as mc3
 
 # for generality we're defining the policy as being a function of an action and a current state
 def random_walk(action, state):
@@ -54,6 +55,8 @@ def stay_land_policy(action, state):
 class MarkovGridWorld():
     def __init__(self, grid_size=3, discount_factor=1, direction_probability = 1, obstacles = np.array([1,1], ndmin=2, dtype='int32'), landing_zone = np.array([0, 0], dtype='int32'), max_altitude = None):
         self.grid_size = grid_size
+
+        self.crash_penalty = -10000
 
         # self.landing_zone given as a 2-element row vector
 
@@ -118,6 +121,7 @@ class MarkovGridWorld():
         else: # only other possible case is difference[0] == 0 (terminal state transitions). doesn't really matter what the output is in this case.
             return 0
 
+    """
     def reward(self, state):
         if state[0] == 0:
             for obstacle in self.obstacles:
@@ -127,6 +131,34 @@ class MarkovGridWorld():
             return norm.pdf(manhattan_distance) / norm.pdf(0) # normalise against the max reward available
         else:
             return 0
+    """
+
+    # yet another possible reward function
+    def reward(self, state):
+        if state[0] == 0:
+            for obstacle in self.obstacles:
+                if np.array_equal(state[1:], obstacle):
+                    return 0
+            else:
+                manhattan_distance = cityblock(state[1:], self.landing_zone)
+                return 1 / (manhattan_distance + 1)
+        return 0
+
+    
+    """
+    def reward(self, state):
+        for obstacle in self.obstacles:
+            if np.array_equal(state[1:], obstacle):
+                return self.crash_penalty # very negative number
+        
+        if state[0] == 0: # and not crashed, because we've checked
+            manhattan_distance = cityblock(state[1:], self.landing_zone)
+            return -manhattan_distance
+        else:
+            return 0
+    """
+
+
 
     # returns the probability of a successor state, given a current state and an action.
     # crucial to define these in this generalised form, in order to implement general policy evaluation algorithm.
@@ -148,10 +180,18 @@ class MarkovGridWorld():
         
         
         # consider obstacle cases, similar to crashed cases.
+        """
         for obstacle in self.obstacles:
             if np.array_equal(current_state[1:], obstacle):
                 if np.array_equal(successor_state, self.terminal_state):
                     return 1 # can only be taken to terminal_state
+                else:
+                    return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
+        """
+        for obstacle in self.obstacles:
+            if np.array_equal(current_state[1:], obstacle):
+                if np.array_equal(successor_state, current_state):
+                    return 1 # can only get stuck in itself
                 else:
                     return 0 # anywhere else is impossible to succeed the current_state, given the condition above.
 
@@ -277,6 +317,10 @@ def accessible_states(current_state, MDP):
     # in these cases, the only accessible state from there is the MDP's terminal state.
     if current_state[0] <= 0:
         return np.array(MDP.terminal_state, ndmin=2)
+    
+    for obstacle in MDP.obstacles:
+        if np.array_equal(current_state[1:], obstacle):
+            return np.array(current_state, ndmin=2)
 
     # now onto all other cases, where drone is still flying.
     # initialise output to be zeros of shape (len(MDP.action_space),3).
@@ -374,7 +418,7 @@ def policy_iteration(policy, MDP, evaluation_max_iterations=10, improvement_max_
     
     et = time.time()
     print('Final policy array:')
-    print(current_policy_array[:MDP.max_altitude + 1])
+    print(current_policy_array[:MDP.max_altitude])
     print()
     
     if train_time is False:
@@ -451,6 +495,7 @@ def run_value_iteration(policy, MDP, max_iterations=1000):
     et = time.time()
     elapsed_time = et - st
     print(f'Elapsed time: {elapsed_time} seconds')
+    return optimal_policy, optimal_policy_array
 
 def run_profiler(function):
     import cProfile
@@ -469,6 +514,6 @@ def run_profiler(function):
 
 if __name__ == "__main__":
     os.system('clear')
-    mdp = MarkovGridWorld(grid_size=6)
-    #run_value_iteration(random_walk, mdp)
-    run_profiler('run_value_iteration(random_walk, mdp)')
+    MDP = MarkovGridWorld(grid_size=6, landing_zone=[0,0], obstacles=np.array([[1,1], [0,1]]))
+    optimal_policy, optimal_policy_array = run_value_iteration(random_walk, MDP, 1000000)
+    mc3.simulate_policy(MDP, optimal_policy, 6)

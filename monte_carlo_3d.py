@@ -240,13 +240,13 @@ if __name__ == '__main__':
     """
     os.system('clear')
     #buildings = np.array([[1,1], [3,2], [4,1]], ndmin=2, dtype='int32'))
-    grid_size = 12
+    grid_size = 10
     buildings = np.random.randint(0, grid_size, (6,2))
     MDP = MarkovGridWorld(grid_size = grid_size, max_altitude=12, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=0.85)
-    no_episodes = int(np.floor(len(MDP.state_space) / 2))
-    no_steps = int(np.floor(len(MDP.state_space) / 40))
-    no_episodes = 1000
-    no_steps = 40
+    #no_episodes = int(np.floor(len(MDP.state_space) / 2))
+    #no_steps = int(np.floor(len(MDP.state_space) / 40))
+    no_episodes = 5000
+    no_steps = 1
     print(f'Monte Carlo, number of episodes per improvement: {no_episodes}')
     print(f'Monte Carlo, number of improvement steps: {no_steps}')
     print()
