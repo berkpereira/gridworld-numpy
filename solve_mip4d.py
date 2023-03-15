@@ -130,8 +130,8 @@ def mip_history_and_actions_from_mdp(MDP, initial_state, initial_velocity_index,
     ampl, solve_time = solve_mip(ampl)
 
     # solution failed!
-    if ampl is False: # return number of arguments equal to regular output! thus doesn't break unpacking when called 
-        return False, False, False
+    if ampl is False:
+        return False, False, False # return number of arguments equal to regular output! thus doesn't break unpacking when called 
 
     # Fetch velocities and put them into a suitable data shape.
     velocities = ampl.get_variable('Velocity')
