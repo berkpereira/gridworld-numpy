@@ -94,8 +94,7 @@ class MarkovGridWorld():
         self.rng = np.random.default_rng() # construct a default numpy random number Generator class instance, to use in stochastics
         self.direction_probability = direction_probability
         self.prob_other_directions = (1 - self.direction_probability) / 4 # now divide by 4 because of addition of another 'direction' --> staying put
-        # for ease of iterating over all states, define a 2 x (grid_size**2) matrix below
-        self.state_space = np.zeros(shape=(self.grid_size**2 * ((self.max_altitude * 2) + 1),3), dtype='int32')
+        self.state_space = np.zeros(shape=(self.grid_size**2 * (self.max_altitude +2),3), dtype='int32')
         state_counter = 0 # start counting at 1 because state indexed by 0 is self.terminal_state, all zeros, already as defined
         
         for altitude in range(self.max_altitude, -2, -1):
