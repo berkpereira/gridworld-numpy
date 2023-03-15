@@ -37,13 +37,14 @@ def mip_simulate_closed_loop(sim_MDP, sim_mip_initial_state, sim_initial_velocit
         # the MIP problem was insoluble! if problem was insoluble, the episode is just kind of cut-off suddenly. This will always happen NEXT TO
         # EITHER AN OBSTACLE OR A BOUNDARY!
         if mip_history is False:
-            try: # this will fail if the MIP could not be solved to begin with
+            try: # this will FAIL if the MIP could not be solved to begin with, otherwise something's gone off track mid-simulation
                 sim_history[sim_history_index, :4] = experienced_next_state
                 sim_history = sim_history[:(sim_history_index + 1)]
                 break
             
             # once more, in case of error, return same number of argument as in successful case.
-            # this makes it easier to unpack as usual
+            # this makes it easier to unpack as usual.
+            # this except is triggered if the MIP was insoluble from the start.
             except:
                 return False, False, False
 
@@ -82,50 +83,92 @@ def mip_simulate_closed_loop(sim_MDP, sim_mip_initial_state, sim_initial_velocit
         sim_compute_time += solve_time
         sim_mip_solutions += 1
 
+    # ended prematurely either due to:
+    # experienced crash,
+    # imminent crash, or
+    # boundary error.
+    if MDP.max_altitude > 0 and sim_history[-1,0] > 0:
+        last_recorded_step = sim_history[-1]
+        direction_array = MDP.action_to_direction[last_recorded_step[1]][0]
+        imminent_2d_state = np.clip(last_recorded_step[2:4] + direction_array, 0, MDP.grid_size - 1)
+        for obstacle in MDP.obstacles:
+            if np.array_equal(imminent_2d_state, obstacle) and not np.array_equal(last_recorded_step[2:4], obstacle): # imminent crash that has NOT happened yet
+                imminent_step = np.array([MDP.max_altitude-1, last_recorded_step[1], imminent_2d_state[0], imminent_2d_state[1], 0])
+                sim_history = np.append(sim_history, np.array(imminent_step, ndmin=2), axis=0) # add on the imminent crashed state to the history
+                break
+        else: # i.e., did NOT find an obstacle imminently to be crashed into!
+            # at this point we will just let the history be and cut off at the boundary error. We'll check these cases in the evaluation function
+            pass
+        
+
     return sim_history, sim_mip_solutions, sim_compute_time
 
 # STILL HAVE TO ITERATE THIS OVER MULTIPLE TIMES, OBVIOUSLY
 # AND THEN RETURN THE AVERAGE "SCORE"
 def evaluate_mip(eval_MDP, no_evaluations):
     
-    # we first need to generate a random initial state that isn't infeasible straight away,
-    # e.g., a boundary state heading into the boundary, stuff which the IP would have issues computing to begin with
-    sim_history = False
-    while sim_history is False:
-        sim_initial_velocity_index = np.random.randint(0,4)
-        sim_mip_initial_state = np.array([np.random.randint(0, eval_MDP.grid_size), np.random.randint(0, eval_MDP.grid_size)], dtype='int32')
-        sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(sim_MDP=eval_MDP, sim_mip_initial_state=sim_mip_initial_state, sim_initial_velocity_index=sim_initial_velocity_index)
+    cumulative_score = 0
+    evaluation_no = 0
+    crashes = 0
+    landed_solve_time = 0
+    landed_solve_no = 0
+    while evaluation_no < no_evaluations:
+        crashed = False
+        # we need to generate a random initial state that isn't infeasible straight away,
+        # e.g., a boundary state heading into the boundary, stuff which the IP would have issues computing to begin with.
+        # we do this at the same time as we solve the full problem.
+        sim_history = False
+        while sim_history is False:
+            sim_initial_velocity_index = np.random.randint(0,4)
+            sim_mip_initial_state = np.array([np.random.randint(0, eval_MDP.grid_size), np.random.randint(0, eval_MDP.grid_size)], dtype='int32')
+            sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(sim_MDP=eval_MDP, sim_mip_initial_state=sim_mip_initial_state, sim_initial_velocity_index=sim_initial_velocity_index)
 
-    # did not get to land, for whatever reason
-    # need to check whether it:
-    # CASE 1: hit an obstacle or was bound to and hence couldn't solve the MIP from there.
-    # CASE 2: it just found itself going against a boundary and hence couldn't solve MIP from there.
-    
-    # CASE 1 must be negatively reflected in the average score, consistently with the way we come to do it with RL
-    # CASE 2 must not. not sure how to handle these cases, but perhaps, at least for reasonably sized problems, it's best to
-    # just pretend they didn't happen and keep simulating from there.
-    if sim_history[0,0] > 0:
-        pass
+        # check if agent crashed
+        for obstacle in eval_MDP.obstacles:
+            if np.array_equal(sim_history[-1,2:4], obstacle): # crashed
+                # no score added
+                crashes += 1
+                evaluation_no += 1
+                crashed = True
+                break
+        
+        # agent crashed, it's taken care of, go on to the next one.
+        if crashed:
+            continue
 
-    # when we break out of the while condition it means we've solved a problem that wasn't infeasible to begin with!
-    return sim_history, sim_mip_solutions, sim_compute_time, score
+        # problem stopped early without a crash --> boundary problem.
+        # we will IGNORE these cases.
+        if sim_history[-1,0] > 0 and not crashed:
+            # do NOT increment score NOR evaluation_no
+            continue
+
+        # we are finally left with cases where agent DID land
+        cumulative_score += eval_MDP.reward(sim_history[-1,:4])
+        evaluation_no += 1
+        landed_solve_time += sim_compute_time
+        landed_solve_no += sim_mip_solutions
+
+
+    average_landed_return = cumulative_score / (no_evaluations - crashes)
+    average_landed_solve_time = landed_solve_time / (no_evaluations - crashes)
+    average_landed_solve_no = landed_solve_no / (no_evaluations - crashes)
+    return average_landed_return, average_landed_solve_time, average_landed_solve_no, crashes
 
 
 
 
 if __name__ == "__main__":
     os.system('clear')
-    #MDP_list = [dp4.MarkovGridWorld(grid_size=5, direction_probability=1, obstacles=np.array([[]]), landing_zone=np.array([0,0]), max_altitude=10),
-    #            dp4.MarkovGridWorld(grid_size=4, direction_probability=1, obstacles=np.array([[]]), landing_zone=np.array([0,0]), max_altitude=5)]
-    
-    #test_MDP = dp4.MarkovGridWorld(grid_size=6, direction_probability=0.90, obstacles=np.array([[0,1], [10,0], [4,21], [13,6], [20,20]]), landing_zone=np.array([3,3]), max_altitude=30)
-    MDP = dp4.MarkovGridWorld(grid_size=4, direction_probability=0.5,obstacles=np.array([[0,0]]), landing_zone = np.array([1,1]), max_altitude = 12)
-    #sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(sim_MDP=MDP, sim_mip_initial_state=np.array([2,1]), sim_initial_velocity_index=2)
-    for i in range(3):
-        sim_history = evaluate_mip(eval_MDP=MDP, no_evaluations=0)
-        print(sim_history)
-        print()
-        print()
-        mc4.play_episode(MDP, None, sim_history)
-    #print(f"Number of MIP solutions: {sim_mip_solutions}.\nCumulative time spent computing MIP solutions: {sim_compute_time} seconds.")
-    #mc4.play_episode(test_MDP, None, sim_history)
+    MDP = dp4.MarkovGridWorld(grid_size=10, direction_probability=0.90,obstacles=np.array([[0,0], [2,2]]), landing_zone = np.array([1,1]), max_altitude = 20)
+    no_evaluations = 40
+    avg_landed_return, avg_landed_solve_time, avg_landed_solve_no, crashes = evaluate_mip(MDP, no_evaluations)
+    print()
+    print()
+    print(f'Number of MIP evaluations (excluding boundary problems): {no_evaluations}')
+    print(f'Number of simulated crashes: {crashes}')
+    print(f'Simulation crash rate: {crashes/no_evaluations * 100}%')
+    print(f'Average score in NON-CRASHED simulations: {avg_landed_return}')
+    print(f'Average solve time in NON-CRASHED simulations: {avg_landed_return} seconds')
+    print(f'Average no. of solutions in NON-CRASHED simulations: {avg_landed_solve_no}')
+    print()
+    print()
