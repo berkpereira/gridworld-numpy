@@ -531,33 +531,32 @@ class MarkovGridWorld():
         
 
         # first consider the CORNERS.
-        # if the agent is at a corner, it is NECESSARILY heading towards it, so it must be forced to turn, regardless of its action.
         if (state[2] == 0 and state[3] == 0): # top-left corner
             if state[1] == 2: # heading up
                 new_state = np.array([state[0] - 1, 1, 0, 1], dtype='int32') # turn to global right
                 return new_state
-            else: # heading left
+            elif state[1] == 3: # heading left
                 new_state = np.array([state[0] - 1, 0, 1, 0], dtype='int32') # turn to global down
                 return new_state
         if (state[2] == 0 and state[3] == (self.grid_size - 1)): # top-right corner
             if state[1] == 1: # heading right
                 new_state = np.array([state[0] - 1, 0, 1, self.grid_size - 1], dtype='int32') # turn to global down
                 return new_state
-            else: # heading up
+            elif state[1] == 2: # heading up
                 new_state = np.array([state[0] - 1, 3, 0, self.grid_size - 2], dtype='int32') # turn to global left
                 return new_state
         if (state[2] == (self.grid_size - 1) and state[3] == 0): # bottom-left corner
             if state[1] == 0: # heading down
                 new_state = np.array([state[0] - 1, 1, self.grid_size - 1, 1], dtype='int32') # turn to global right
                 return new_state
-            else: # heading left
+            elif state[1] == 3: # heading left
                 new_state = np.array([state[0] - 1, 2, self.grid_size - 2, 0], dtype='int32') # turn to global up
                 return new_state
         if (state[2] == (self.grid_size - 1) and state[3] == (self.grid_size - 1)): # bottom-right corner
             if state[1] == 0: # heading down
                 new_state = np.array([state[0] - 1, 3, self.grid_size - 1, self.grid_size - 2], dtype='int32') # turn to global left
                 return new_state
-            else: # heading right
+            elif state[1] == 1: # heading right
                 new_state = np.array([state[0] - 1, 2, self.grid_size - 2, self.grid_size - 1], dtype='int32') # turn to global up
                 return new_state
         
