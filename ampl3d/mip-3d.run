@@ -1,6 +1,6 @@
 reset;
-model velocity-simpler.mod;
-data velocity-simpler.dat;
+model new-mip-3d.mod;
+data mip-3d.dat;
 option solver cplex;
 option display_1col 0;
 option display_transpose -500;
