@@ -41,8 +41,10 @@ epsilon_grid_size = 8
 epsilon_obstacles = np.array([[3,2], [4,5], [6,3]], dtype='int32')
 epsilon_landing_zone = np.array([4,4], dtype='int32')
 epsilon_max_altitude = 10
-epsilon_eval_wind = 0.85
+epsilon_eval_wind = 0.90 # training and evaluating with equal wind levels.
 epsilon_MDP = dp4.MarkovGridWorld(grid_size=epsilon_grid_size, direction_probability=epsilon_eval_wind, obstacles=epsilon_obstacles, landing_zone=epsilon_landing_zone, max_altitude=epsilon_max_altitude)
-epsilon_train_wind = 0.90 # CHECK THIS CHOICE!
-epsilon_no_episodes = 100
+epsilon_no_episodes = 200
 epsilon_no_steps = 5
+epsilon_train_params = np.linspace(0, 1, 21)
+
+epsilon_no_evaluations = 3000
