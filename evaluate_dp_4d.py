@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 
 # TRAINING WITH DIFFERENT WIND PARAMETERS AND SAVING POLICIES TO FILES
 # NOTE, wind parameter of evaluation_MDP input does not matter. this will be set using values no_wind_parameters input argument values between 0 and 1.
-def wind_train_policies(evaluation_MDP, no_wind_parameters):
-    for wind in np.linspace(0.0, 1.0, no_wind_parameters):
+def wind_train_policies(evaluation_MDP, wind_train_params):
+    for wind in wind_train_params:
         wind = round(wind, 2) # round to 2 decimal places
         # training MDP same as evaluation MDP except for direction_probability
         training_MDP = dp4.MarkovGridWorld(grid_size=evaluation_MDP.grid_size, direction_probability=wind, obstacles=evaluation_MDP.obstacles, landing_zone=evaluation_MDP.landing_zone, max_altitude=evaluation_MDP.max_altitude)
@@ -32,6 +32,7 @@ def wind_evaluate_policies(evaluation_MDP, no_evaluations, eval_wind_params, tra
     no_eval_wind_params = len(eval_wind_params)
     no_train_wind_params = len(train_wind_params)
     evaluations = np.zeros(shape=(no_train_wind_params, no_eval_wind_params))
+    crashes = np.zeros(shape=(no_train_wind_params, no_eval_wind_params))
     to_go = no_train_wind_params * no_eval_wind_params
     j = 0
     for eval_wind in eval_wind_params:
@@ -51,23 +52,31 @@ def wind_evaluate_policies(evaluation_MDP, no_evaluations, eval_wind_params, tra
             policy = dp4.array_to_policy(policy_array, MDP)
 
             cumulative_score = 0
+            crash_count = 0
             # run {no_evaluations} simulations using the fetched policy and record returns
             for _ in range(no_evaluations):
 
                 history = mc4.generate_episode(MDP, policy)
-                cumulative_score += history[-1,-1]
+
+                # BEWARE OF THE BELOW WHICH ONLY MAKES SENSE FOR RECIPROCAL OF L-1 NORM-TYPE REWARD
+                if history[-1,-1] != 0:
+                    cumulative_score += int(1 / history[-1,-1]) - 1
+                else: # CRASHED
+                    crash_count += 1
             average_score = cumulative_score / no_evaluations
-            evaluations[i,j] = average_score    
+            evaluations[i,j] = average_score
+            crashes[i,j] = crash_count
             i += 1
             
             print(f'Another evaluation done. {to_go} more to go!')
             to_go -= 1
         j += 1
-    return evaluations
+    return evaluations, crashes
 
 # TO PLOT POLICY PERFORMANCE WITH VARYING WIND PARAMETERS
-def wind_plot_evaluations(evaluations_array_txt_file_name, eval_wind_params, train_wind_params, save=False):
+def wind_plot_evaluations(evaluations_array_txt_file_name, no_evaluations, eval_wind_params, train_wind_params, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=2)
+    
     no_eval_wind_params = len(eval_wind_params)
     no_mosaic_rows = 3
 
@@ -76,8 +85,33 @@ def wind_plot_evaluations(evaluations_array_txt_file_name, eval_wind_params, tra
     for j in range(no_eval_wind_params):
         plt.subplot(no_mosaic_rows, int(np.ceil(no_eval_wind_params / no_mosaic_rows)), j+1)
         plt.plot(train_wind_params, evaluations[:,j], 'r-*')
+        
+        
         #plt.ylim(np.amin(evaluations), 0)
-        plt.ylim(0, 0.8)
+        plt.ylim(0, np.amax(evaluations))
+        plt.grid(True)
+        plt.title('Evaluation wind: ' + str(round(eval_wind_params[j],2)))
+    plt.tight_layout()
+    
+    if save:
+        plt.savefig('out_plot.pdf')
+    
+    plt.show()
+
+def wind_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, eval_wind_params, train_wind_params, save=False):
+    crashes = np.loadtxt(crashes_array_txt_file_name, ndmin=2)
+    crash_rates = crashes / no_evaluations
+    
+    no_eval_wind_params = len(eval_wind_params)
+    no_mosaic_rows = 3
+
+    plt.figure(figsize=(12,9))
+
+    for j in range(no_eval_wind_params):
+        plt.subplot(no_mosaic_rows, int(np.ceil(no_eval_wind_params / no_mosaic_rows)), j+1)
+        plt.plot(train_wind_params, crash_rates[:,j], 'b-*')
+        
+        plt.ylim(0, np.amax(crash_rates))
         plt.grid(True)
         plt.title('Evaluation wind: ' + str(round(eval_wind_params[j],2)))
     plt.tight_layout()
@@ -89,18 +123,22 @@ def wind_plot_evaluations(evaluations_array_txt_file_name, eval_wind_params, tra
 
     
 # TO SAVE INFO ABOUT RESULTS FILE
-def save_results_info(evaluations_array, no_evaluations, eval_wind_params, train_wind_params, this_dir=True):
+def save_results_info(evaluations_array, crashes_array, no_evaluations, eval_wind_params, train_wind_params, this_dir=True):
     if this_dir is False:
-        results_file_name = 'results/4d/training_wind/wind_evaluations_array.txt'
+        evaluations_file_name = 'results/4d/training_wind/wind_evaluations_array.txt'
+        crashes_file_name = 'results/4d/training_wind/wind_crashes_array.txt'
         info_file_name = 'results/4d/training_wind/wind_evaluations_info.txt'
     else:
-        results_file_name = 'wind_evaluations_array.txt'
+        evaluations_file_name = 'wind_evaluations_array.txt'
+        crashes_file_name = 'wind_crashes_array.txt'
         info_file_name = 'wind_evaluations_info.txt'
-    confirmed = input(f'About to write results to {results_file_name} and info to {info_file_name}. Proceed? (y/n)') == 'y'
+    confirmed = input(f'About to write results to {evaluations_file_name} and info to {info_file_name}. Proceed? (y/n)') == 'y'
     if confirmed:
-        np.savetxt(results_file_name, evaluations_array)
+        np.savetxt(evaluations_file_name, evaluations_array)
+        np.savetxt(crashes_file_name, crashes_array)
 
-        lines = [f'Information on the {results_file_name} file.',
+
+        lines = [f'Information on the {evaluations_file_name} file.',
              '',
              'Number of simulations used per evaluation entry: ' + str(no_evaluations),
              'Evaluated policies were trained with the following wind parameters: ' + str(train_wind_params),
@@ -110,7 +148,7 @@ def save_results_info(evaluations_array, no_evaluations, eval_wind_params, train
             for line in lines:
                 f.write(line)
                 f.write('\n')
-        print(f'Results and info written to {results_file_name} and {info_file_name}.')
+        print(f'Results and info written to {evaluations_file_name} and {info_file_name}.')
     else:
         print('Did not confirm. Files NOT written.')
 
@@ -143,6 +181,8 @@ def evaluate_random_walk(evaluation_MDP, no_evaluations, eval_wind_params):
         j += 1
     return evaluations
 
+# TRAINING MULTIPLE MONTE CARLO POLICIES WITH VARYING EPSILON
+#def epsilon_train_policies(MDP, )
 
 if __name__ == "__main__":
     os.system('clear')
@@ -155,22 +195,27 @@ if __name__ == "__main__":
     # TRAIN POLICIES AT DIFFERENT WIND PARAMATERS AND STORE IN RESULTS DIRECTORY.
     wind_train = False
     if wind_train:
-        wind_train_policies(bp4.wind_MDP, 21)
+        wind_train_policies(bp4.wind_MDP, 21) # 21 wind training parameters
 
     # EVALUATE POLICIES TRAINED WITH DIFFERENT WIND PARAMETERS SIMULATED IN PROBLEMS WITH DIFFERENT WIND PARAMETERS,
     # STORE 2D ARRAY RESULTS IN RESULTS DIRECTORY.
     wind_evaluate = False
     if wind_evaluate:
-        evaluations = wind_evaluate_policies(bp4.wind_MDP, bp4.no_evaluations, bp4.wind_wind_params, bp4.train_wind_params)
-        print(f'Evaluated policies using {bp4.no_evaluations} simulations each.')
-        print(f'Evaluated policies trained with following wind parameters (each row corresponds to a policy): {bp4.train_wind_params}')
-        print(f'Evaluated policies using MDPs with following wind parameters (each column corresponds to an evaluation MDP): {bp4.wind_wind_params}')
+        evaluations, crashes = wind_evaluate_policies(bp4.wind_MDP, bp4.wind_no_evaluations, bp4.wind_eval_params, bp4.wind_train_params)
+        #evaluations, crashes = wind_evaluate_policies(bp4.wind_MDP, 10, bp4.wind_eval_params, bp4.wind_train_params)
+        print(f'Evaluated policies using {bp4.wind_no_evaluations} simulations each.')
+        print(f'Evaluated policies trained with following wind parameters (each row corresponds to a policy): {bp4.wind_train_params}')
+        print(f'Evaluated policies using MDPs with following wind parameters (each column corresponds to an evaluation MDP): {bp4.wind_eval_params}')
+        print('Evaluations array:')
         print(evaluations)
-        save_results_info(evaluations, bp4.no_evaluations, bp4.wind_eval_params, bp4.wind_train_params, this_dir=True)
+        print('Crashes array:')
+        print(crashes)
+        save_results_info(evaluations, crashes, bp4.wind_no_evaluations, bp4.wind_eval_params, bp4.wind_train_params, this_dir=True)
     
     # READ 2D ARRAY RESULTS FROM PREVIOUS STEP (ABOUT CHOOSING WIND PARAMETER) AND PLOT THEM.
     wind_plot = True
     if wind_plot:
-        evaluations_file = 'results/4d/training_wind/random_walk_evaluation_array.txt'
         evaluations_file = 'results/4d/training_wind/wind_evaluations_array.txt'
-        wind_plot_evaluations(evaluations_file, bp4.wind_eval_params, bp4.wind_train_params, False)
+        crashes_file = 'results/4d/training_wind/wind_crashes_array.txt'
+        wind_plot_evaluations(evaluations_file, bp4.wind_no_evaluations, bp4.wind_eval_params, bp4.wind_train_params, save = False)
+        wind_plot_crash_rates(crashes_file, bp4.wind_no_evaluations, bp4.wind_eval_params, bp4.wind_train_params, save = False)

@@ -103,8 +103,7 @@ def mip_simulate_closed_loop(sim_MDP, sim_mip_initial_state, sim_initial_velocit
 
     return sim_history, sim_mip_solutions, sim_compute_time
 
-# STILL HAVE TO ITERATE THIS OVER MULTIPLE TIMES, OBVIOUSLY
-# AND THEN RETURN THE AVERAGE "SCORE"
+
 def evaluate_mip(eval_MDP, no_evaluations):
     
     cumulative_score = 0
@@ -126,7 +125,7 @@ def evaluate_mip(eval_MDP, no_evaluations):
         # check if agent crashed
         for obstacle in eval_MDP.obstacles:
             if np.array_equal(sim_history[-1,2:4], obstacle): # crashed
-                # no score added
+                # no score added, but we DO include this, hence
                 crashes += 1
                 evaluation_no += 1
                 crashed = True
@@ -136,7 +135,7 @@ def evaluate_mip(eval_MDP, no_evaluations):
         if crashed:
             continue
 
-        # problem stopped early without a crash --> boundary problem.
+        # problem stopped early without a crash --> BOUNDARY PROBLEM.
         # we will IGNORE these cases.
         if sim_history[-1,0] > 0 and not crashed:
             # do NOT increment score NOR evaluation_no
