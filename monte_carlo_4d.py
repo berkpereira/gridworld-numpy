@@ -256,18 +256,16 @@ def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no
 if __name__ == '__main__':
     os.system('clear')
     import benchmark_problems_4d as bp4
-    #grid_size = 10
-    #buildings = np.random.randint(0, grid_size, (grid_size,2))
-    #MDP = MarkovGridWorld(grid_size = grid_size, max_altitude=20, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=1)
-    #no_episodes = int(np.floor(len(MDP.state_space) / 2))
-    #no_steps = int(np.floor(len(MDP.state_space) / 40))
-    #no_episodes = 8000
-    #no_steps = 1
 
-    print(f'Monte Carlo, number of episodes per improvement: {bp4.epsilon_no_episodes}')
-    print(f'Monte Carlo, number of improvement steps: {bp4.epsilon_no_steps}')
+    MDP = bp4.epsilon_MDP
+    no_episodes_ratio = 1
+    no_episodes = int(np.ceil(no_episodes_ratio * MDP.state_space.shape[0]))
+    no_steps = 5
+
+    print(f'Monte Carlo, number of episodes per improvement: {no_episodes}')
+    print(f'Monte Carlo, number of improvement steps: {no_steps}')
     input('Press Enter to continue...')
-    #new_policy, new_policy_array = monte_carlo_policy_iteration(random_walk, bp4.epsilon_MDP, 0.2, bp4.epsilon_no_episodes, bp4.#epsilon_no_steps)
-    new_policy, new_policy_array = monte_carlo_policy_iteration(random_walk, bp4.epsilon_MDP, 0.2, 800, 5)
-    simulate_policy(bp4.epsilon_MDP, new_policy, 6)
+    new_policy, new_policy_array = monte_carlo_policy_iteration(random_walk, MDP, bp4.ratio_episodes_steps_epsilon, no_episodes, no_steps)
+    
+    simulate_policy(bp4.epsilon_MDP, new_policy, 10)
     
