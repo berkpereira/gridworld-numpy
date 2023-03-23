@@ -5,6 +5,9 @@ import benchmark_problems_4d as bp4
 import os
 import matplotlib.pyplot as plt
 
+from mpl_toolkits.mplot3d import axes3d
+from matplotlib import cm
+
 # TRAINING MULTIPLE MONTE CARLO POLICIES WITH VARYING EPSILON
 def epsilon_train_policies(MDP, epsilon_params, evaluation_no_episodes, no_improvement_steps):
     for epsilon in epsilon_params:
@@ -214,8 +217,6 @@ def save_ratio_steps_results(evaluations_array, crashes_array, no_evaluations, n
 def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ratio_params, no_steps_params, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=2)
 
-    #plt.figure(figsize=(12,9))
-    #plt.plot(train_epsilon_params, evaluations[:], 'r-*')
     plot_x = no_episodes_ratio_params
     plot_y = no_steps_params
     X, Y = np.meshgrid(plot_x, plot_y)
@@ -229,6 +230,25 @@ def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ra
     ax = fig.add_subplot(111, projection='3d')
 
     surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='hot', linewidth=0, antialiased=False)
+
+    cont_X = np.linspace(np.amin(no_episodes_ratio_params), np.amax(no_episodes_ratio_params), 30)
+    cont_Y = np.linspace(np.amin(no_steps_params), np.amax(no_steps_params), 30)
+    cont_X, cont_Y = np.meshgrid(cont_X, cont_Y)
+    
+    cont_Z = np.multiply(cont_Y, cont_X)
+    
+    
+    #ax.contour(cont_X, cont_Y, cont_Z, extend3d = True, cmap=cm.hot)
+    z_contour = 1.1 * np.amax(Z)
+    ax.contour(cont_X, cont_Y, cont_Z, zdir ='z', levels = len(no_episodes_ratio_params), offset=z_contour, linewidths = 5 ,colors = '#0a97a3')
+    plt.xlim(np.amin(X), np.amax(X))
+    plt.ylim(np.amin(Y), np.amax(Y))
+    ax.set_zlim(0, 1.1 * np.amax(Z))
+    ax.set_xlabel('Ratio of number of episodes per improvement to size of state space')
+    ax.set_ylabel('Number of policy improvement steps')
+    ax.set_zlabel('Simulated performance')
+    
+
     ax.view_init(elev=26, azim = 49)
     
     plt.grid(True)
@@ -283,5 +303,5 @@ if __name__ == "__main__":
     if ratio_steps_plot:
         evaluations_file = 'results/4d/training_ratio_steps/ratio_steps_evaluations_array.txt'
         crashes_file = 'results/4d/training_ratio_steps/ratio_steps_crashes.txt'
-        ratio_steps_plot_evaluations(evaluations_file, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, save = False)
+        ratio_steps_plot_evaluations(evaluations_file, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, save = True)
         #ratio_steps_plot_crash_rates()
