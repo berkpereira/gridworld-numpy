@@ -211,6 +211,35 @@ def save_ratio_steps_results(evaluations_array, crashes_array, no_evaluations, n
     else:
         print('Did not confirm. Files NOT written.')
 
+def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ratio_params, no_steps_params, save=False):
+    evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=2)
+
+    #plt.figure(figsize=(12,9))
+    #plt.plot(train_epsilon_params, evaluations[:], 'r-*')
+    plot_x = no_episodes_ratio_params
+    plot_y = no_steps_params
+    X, Y = np.meshgrid(plot_x, plot_y)
+
+    indices_x = np.arange(len(plot_x))
+    indices_y = np.arange(len(plot_y))
+    indices_x, indices_y = np.meshgrid(indices_x, indices_y)
+    Z = evaluations[indices_x, indices_y]
+
+    fig = plt.figure(figsize=(14,9))
+    ax = fig.add_subplot(111, projection='3d')
+
+    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='hot', linewidth=0, antialiased=False)
+    ax.view_init(elev=26, azim = 49)
+    
+    plt.grid(True)
+    plt.title('Cost function of Monte Carlo policies with varying number of episodes and improvement steps')
+    plt.tight_layout()
+
+    if save:
+        plt.savefig('out_plot.pdf')
+    
+    plt.show()
+
 if __name__ == "__main__":
     epsilon_train = False
     if epsilon_train:
@@ -238,7 +267,7 @@ if __name__ == "__main__":
     if ratio_steps_train:
         ratio_steps_train_policies(bp4.epsilon_MDP, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params)
 
-    ratio_steps_evaluate = True
+    ratio_steps_evaluate = False
     if ratio_steps_evaluate:
         evaluations, crashes = ratio_steps_evaluate_policies(bp4.epsilon_MDP, bp4.epsilon_no_evaluations, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params)
         print(f'Evaluated policies using {bp4.epsilon_no_evaluations} simulations each.')
@@ -249,3 +278,10 @@ if __name__ == "__main__":
         print('Crashes array:')
         print(crashes)
         save_ratio_steps_results(evaluations, crashes, bp4.ratio_episodes_steps_no_evaluations, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, bp4.epsilon_MDP.state_space.shape[0], this_dir = True)
+
+    ratio_steps_plot = True
+    if ratio_steps_plot:
+        evaluations_file = 'results/4d/training_ratio_steps/ratio_steps_evaluations_array.txt'
+        crashes_file = 'results/4d/training_ratio_steps/ratio_steps_crashes.txt'
+        ratio_steps_plot_evaluations(evaluations_file, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, save = False)
+        #ratio_steps_plot_crash_rates()
