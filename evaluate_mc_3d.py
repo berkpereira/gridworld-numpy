@@ -1,7 +1,7 @@
 import numpy as np
-import dynamic_programming_4d as dp3
-import monte_carlo_4d as mc3
-import benchmark_problems_4d as bp3
+import dynamic_programming_3d as dp3
+import monte_carlo_3d as mc3
+import benchmark_problems_3d as bp3
 import os
 import matplotlib.pyplot as plt
 
@@ -289,7 +289,7 @@ def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no
     #plt.show()
 
 if __name__ == "__main__":
-    epsilon_train = True
+    epsilon_train = False
     if epsilon_train:
         epsilon_train_policies(bp3.epsilon_MDP, bp3.epsilon_train_params, bp3.epsilon_no_episodes, bp3.epsilon_no_steps)
 
@@ -315,6 +315,7 @@ if __name__ == "__main__":
     ratio_steps_train = False
     if ratio_steps_train:
         ratio_steps_train_policies(bp3.epsilon_MDP, bp3.ratio_episodes_steps_ratio_params, bp3.ratio_episodes_steps_no_steps_params)
+        print('\a')
 
     ratio_steps_evaluate = False
     if ratio_steps_evaluate:
@@ -326,12 +327,13 @@ if __name__ == "__main__":
         print(evaluations)
         print('Crashes array:')
         print(crashes)
+        print('\a')
         save_ratio_steps_results(evaluations, crashes, bp3.ratio_episodes_steps_no_evaluations, bp3.ratio_episodes_steps_ratio_params, bp3.ratio_episodes_steps_no_steps_params, bp3.epsilon_MDP.state_space.shape[0], this_dir = True)
 
-    ratio_steps_plot = False
+    ratio_steps_plot = True
     if ratio_steps_plot:
         evaluations_file = 'results/3d/training_ratio_steps/ratio_steps_evaluations_array.txt'
         crashes_file = 'results/3d/training_ratio_steps/ratio_steps_crashes_array.txt'
         ratio_steps_plot_evaluations(evaluations_file, bp3.ratio_episodes_steps_ratio_params, bp3.ratio_episodes_steps_no_steps_params, save = False)
-        ratio_steps_plot_crash_rates(crashes_file, bp3.epsilon_no_evaluations, bp3.ratio_episodes_steps_ratio_params, bp3.ratio_episodes_steps_no_steps_params, save = True)
+        ratio_steps_plot_crash_rates(crashes_file, bp3.epsilon_no_evaluations, bp3.ratio_episodes_steps_ratio_params, bp3.ratio_episodes_steps_no_steps_params, save = False)
         plt.show()
