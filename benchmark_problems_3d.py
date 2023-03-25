@@ -54,10 +54,10 @@ epsilon_no_evaluations = 3000
 STUFF FOR CHOICE OF RATIO OF EPISODES TO SIZE OF STATE SPACE AND NUMBER OF POLICY IMPROVEMENT STEPS
 
 """
+# NOTICE DIFFERENT CONCLUDED EPSILON PARAMETER FOR USE
+ratio_episodes_steps_epsilon = 0.1 # as per what was concluded in epsilon investigations
 
-ratio_episodes_steps_epsilon = 0.2 # as per what was concluded in epsilon investigations
-
-ratio_episodes_steps_ratio_params = np.linspace(0.1, 1, 10) # 0.1, 0.2, ..., 0.9, 1.0
+ratio_episodes_steps_ratio_params = np.linspace(0.05, 0.5, 10) # 0.05, 0.10, ..., 0.45, 0.50
 ratio_episodes_steps_no_steps_params = np.linspace(1, 10, 10) # 1, 2, ..., 9, 10
 
 ratio_episodes_steps_no_evaluations = 3000
