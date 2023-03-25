@@ -102,7 +102,7 @@ def epsilon_plot_evaluations(evaluations_array_txt_file_name, train_epsilon_para
     if save:
         plt.savefig('out_plot.pdf')
     
-    plt.show()
+    #plt.show()
 
 def epsilon_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, train_epsilon_params, save=False):
     crashes = np.loadtxt(crashes_array_txt_file_name, ndmin=1)
@@ -118,7 +118,7 @@ def epsilon_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, train_
     if save:
         plt.savefig('out_plot.pdf')
     
-    plt.show()
+    #plt.show()
 
 # TRAIN POLICIES USING DIFFERENT RATIO OF EPISODES TO STATE SPACE SIZE AND DIFFERENT NUMBER OF IMPROVEMENT STEPS
 def ratio_steps_train_policies(MDP, no_episodes_ratio_params, no_steps_params):
@@ -310,6 +310,7 @@ if __name__ == "__main__":
         crashes_file = 'results/4d/training_epsilon/epsilon_crashes_array.txt'
         epsilon_plot_evaluations(evaluations_file, bp4.epsilon_train_params, save = False)
         epsilon_plot_crash_rates(crashes_file, bp4.epsilon_no_evaluations, bp4.epsilon_train_params, save = False)
+        plt.show()
     
     ratio_steps_train = False
     if ratio_steps_train:
@@ -327,7 +328,7 @@ if __name__ == "__main__":
         print(crashes)
         save_ratio_steps_results(evaluations, crashes, bp4.ratio_episodes_steps_no_evaluations, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, bp4.epsilon_MDP.state_space.shape[0], this_dir = True)
 
-    ratio_steps_plot = True
+    ratio_steps_plot = False
     if ratio_steps_plot:
         evaluations_file = 'results/4d/training_ratio_steps/ratio_steps_evaluations_array.txt'
         crashes_file = 'results/4d/training_ratio_steps/ratio_steps_crashes_array.txt'
