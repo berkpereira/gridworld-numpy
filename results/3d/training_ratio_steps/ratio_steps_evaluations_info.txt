@@ -1,0 +1,6 @@
+Information on the ratio_steps_evaluations_array.txt file.
+
+Number of simulations used per evaluation entry: 3000
+Evaluated policies were trained with the following ratio of number of episodes to state space size: [0.05 0.1  0.15 0.2  0.25 0.3  0.35 0.4  0.45 0.5 ]
+Evaluated policies were trained with the following numbers of policy improvement steps: [ 1.  2.  3.  4.  5.  6.  7.  8.  9. 10.]
+MDP used had the following state space size: 768
