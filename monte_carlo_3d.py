@@ -1,4 +1,5 @@
-from dynamic_programming_3d import *
+from scipy.spatial.distance import cityblock
+import dynamic_programming_3d as dp3
 import numpy as np
 import os
 
@@ -148,7 +149,7 @@ def run_random_then_optimal(MDP, policy, no_episodes):
     print()
     print('Now running value iteration to converge on an optimal policy!')
     input('Press Enter to continue...')
-    optimal_policy, optimal_policy_array = value_iteration(policy, MDP, 20)
+    optimal_policy, optimal_policy_array = dp3.value_iteration(policy, MDP, 20)
     optimal_policy.__name__ = 'optimal_policy'
     simulate_policy(MDP, optimal_policy, no_episodes)
 
@@ -212,7 +213,7 @@ def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no
         initial_value = monte_carlo_policy_evaluation(MDP, current_policy, no_episodes=evaluation_no_episodes)
         print('Previous policy evaluation:')
         print(initial_value[:-1])
-        new_policy_array = greedy_policy_array(initial_value, MDP)
+        new_policy_array = dp3.greedy_policy_array(initial_value, MDP)
         
         if np.array_equal(new_policy_array, current_policy_array):
             policy_is_stable = True
@@ -228,7 +229,7 @@ def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no
     print(current_policy_array[:-1])
     print()
     # in the end, best to return a DETERMINISTIC VERSION OF THE POLICY
-    final_policy = array_to_policy(current_policy_array, MDP)
+    final_policy = dp3.array_to_policy(current_policy_array, MDP)
     return final_policy, current_policy_array
 
 
@@ -247,9 +248,9 @@ if __name__ == '__main__':
     print(f'Monte Carlo, number of episodes per improvement: {no_episodes}')
     print(f'Monte Carlo, number of improvement steps: {no_steps}')
     print()
-    simulate_policy(MDP, random_walk, 6)
+    simulate_policy(MDP, dp3.random_walk, 6)
     print(f'Monte Carlo, number of episodes per improvement: {no_episodes}')
     print(f'Monte Carlo, number of improvement steps: {no_steps}')
     input('Press Enter to continue...')
-    new_policy, new_policy_array = monte_carlo_policy_iteration(random_walk, MDP, 0.1, no_episodes, no_steps)
+    new_policy, new_policy_array = monte_carlo_policy_iteration(dp3.random_walk, MDP, 0.1, no_episodes, no_steps)
     simulate_policy(MDP, new_policy, 10)
