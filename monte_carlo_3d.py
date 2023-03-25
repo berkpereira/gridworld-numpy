@@ -233,24 +233,21 @@ def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no
 
 
 if __name__ == '__main__':
-    """
-    buildings = np.array([[1,0], [1,2], [3,3], [5,4]], dtype='int32')
-    MDP = MarkovGridWorld(grid_size = 6, max_altitude=14, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=0.90)
-    run_random_then_optimal(MDP, random_walk, no_episodes=5)
-    """
     os.system('clear')
-    #buildings = np.array([[1,1], [3,2], [4,1]], ndmin=2, dtype='int32'))
-    grid_size = 10
-    buildings = np.random.randint(0, grid_size, (6,2))
-    MDP = MarkovGridWorld(grid_size = grid_size, max_altitude=12, obstacles = buildings, landing_zone = np.array([2,2], dtype='int32'), direction_probability=0.85)
-    #no_episodes = int(np.floor(len(MDP.state_space) / 2))
-    #no_steps = int(np.floor(len(MDP.state_space) / 40))
+
+    import benchmark_problems_3d as bp3
+    import copy
+
+    MDP = copy.deepcopy(bp3.wind_MDP)
+    MDP.direction_probability = 0.90
+    MDP.prob_other_directions = (1 - MDP.direction_probability) / 4
+
     no_episodes = 5000
-    no_steps = 1
+    no_steps = 10
     print(f'Monte Carlo, number of episodes per improvement: {no_episodes}')
     print(f'Monte Carlo, number of improvement steps: {no_steps}')
     print()
-    simulate_policy(MDP, random_walk, 5)
+    simulate_policy(MDP, random_walk, 6)
     print(f'Monte Carlo, number of episodes per improvement: {no_episodes}')
     print(f'Monte Carlo, number of improvement steps: {no_steps}')
     input('Press Enter to continue...')

@@ -9,41 +9,11 @@ import monte_carlo_3d as mc3
 def random_walk(action, state):
     return 1/5
 
-# just lands!
-def land_policy(action, state):
-    if action == 4:
+def stay_put(action, state):
+    if action == 0:
         return 1
     else:
         return 0
-
-# lands if on landing zone, otherwise moves up!
-# in order to just implement this outright, we need to "cheat" and give the policy knowledge based on the MDP a priori
-# but it's okay because just for purposes of testing 3D policy evaluation
-def up_land_policy(action, state):
-    if np.array_equal(state[1:], np.array([0,0])):
-        if action == 5: # land
-            return 1
-        else:
-            return 0
-    else:
-        if action == 3: # = up
-            return 1
-        else:
-            return 0
-
-# lands if on landing zone and at altitude 1 (ideal conditions).
-# in any other situation, just stays put!
-def stay_land_policy(action, state):
-    if np.array_equal(state[1:], np.array([0,0])) and state[0] == 1:
-        if action == 5:
-            return 1
-        else:
-            return 0
-    else:
-        if action == 0: # stay put if conditions not perfect!
-            return 1
-        else:
-            return 0
 
 
 
@@ -513,7 +483,19 @@ def run_profiler(function):
         p.sort_stats("calls").print_stats()
 
 if __name__ == "__main__":
+    import benchmark_problems_3d as bp3
+    import copy
+    
     os.system('clear')
-    MDP = MarkovGridWorld(grid_size=6, landing_zone=[0,0], obstacles=np.array([[1,1], [0,1]]))
-    optimal_policy, optimal_policy_array = run_value_iteration(random_walk, MDP, 1000000)
-    mc3.simulate_policy(MDP, optimal_policy, 6)
+    MDP = copy.deepcopy(bp3.wind_MDP)
+    MDP.direction_probability = 1
+    MDP.prob_other_directions = (1 - MDP.direction_probability) / 4
+    optimal_policy, optimal_policy_array = policy_iteration(stay_put, MDP, evaluation_max_iterations=np.inf, improvement_max_iterations=np.inf)
+    mc3.simulate_policy(MDP, optimal_policy, 10)
+
+    """
+    MDP_no_wind = copy.deepcopy(MDP)
+    MDP_no_wind.direction_probability = 1
+    MDP_no_wind.prob_other_directions = (1 - MDP_no_wind.direction_probability) / 4
+    mc3.simulate_policy(MDP_no_wind, optimal_policy, 10)
+    """
