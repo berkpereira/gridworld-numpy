@@ -17,10 +17,10 @@ def generate_obstacles(grid_size, landing_zone, no_obstacles):
 
 
 # Define inputs
-MDP_ID = 
-grid_size = 
-landing_zone = np.array([4, 4])
-no_obstacles = 
+MDP_ID = 133
+grid_size = 4
+landing_zone = np.array([3, 3])
+no_obstacles = 6
 
 # Generate obstacles
 obstacles = generate_obstacles(grid_size, landing_zone, no_obstacles)
@@ -30,7 +30,12 @@ print(obstacles)
 
 # Save obstacles, subject to approval
 #save = input('Save obstacles array to file? (y/n)') == 'y'
-save = True
-if save:
+save_obstacles = False
+if save_obstacles:
     obstacles_file_name = "benchmarks-aux/obstacles/obstacles_array_" + str(MDP_ID)
     np.save(obstacles_file_name, obstacles)
+
+save_landing_zone = True
+if save_landing_zone:
+    landing_zone_file_name = "benchmarks-aux/landing-zones/landing_zone_array_" + str(MDP_ID)
+    np.save(landing_zone_file_name, landing_zone)
