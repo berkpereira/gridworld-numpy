@@ -61,3 +61,13 @@ ratio_episodes_steps_ratio_params = np.linspace(0.1, 1, 10) # 0.1, 0.2, ..., 0.9
 ratio_episodes_steps_no_steps_params = np.linspace(1, 10, 10) # 1, 2, ..., 9, 10
 
 ratio_episodes_steps_no_evaluations = 3000
+
+"""
+
+PROPER BENCHMARK PROBLEMS FOR OUR FINAL RESULTS
+
+"""
+
+MDP_dict = {'101':dp4.MarkovGridWorld()}
+
+print()

@@ -5,6 +5,7 @@ import math
 import numpy as np
 from monte_carlo_4d import *
 from amplpy import AMPL, Environment
+import matplotlib
 
 os.system('clear')
 path_to_ampl_exec = "/Users/gabrielpereira/ampl.macos64"
@@ -169,7 +170,7 @@ def actions_from_mip_variables(velocities, max_altitude):
 if __name__ == "__main__":
     ampl = initialise_ampl()
     #MDP = MarkovGridWorld(grid_size=20, obstacles=np.array([[4,4], [5,6], [13,4], [3,16], [12,12], [16,6]]), landing_zone = np.array([6,6]), max_altitude=20)
-    test_MDP = MarkovGridWorld(grid_size=5, direction_probability=1, obstacles=np.array([[0,0]]), landing_zone=np.array([2,2]), max_altitude=6)
+    test_MDP = MarkovGridWorld(grid_size=10, direction_probability=1, obstacles=np.array([[0,0]]), landing_zone=np.array([2,2]), max_altitude=10)
     initial_state = [1,1]
 
     # mip_history_from_mdp is the crucial function here 
