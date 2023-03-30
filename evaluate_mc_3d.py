@@ -3,6 +3,7 @@ import dynamic_programming_3d as dp3
 import monte_carlo_3d as mc3
 import benchmark_problems_3d as bp3
 import os
+import matplotlib
 import matplotlib.pyplot as plt
 
 from mpl_toolkits.mplot3d import axes3d
@@ -332,6 +333,7 @@ if __name__ == "__main__":
 
     ratio_steps_plot = True
     if ratio_steps_plot:
+        print(matplotlib.matplotlib_fname())
         evaluations_file = 'results/3d/training_ratio_steps/ratio_steps_evaluations_array.txt'
         crashes_file = 'results/3d/training_ratio_steps/ratio_steps_crashes_array.txt'
         ratio_steps_plot_evaluations(evaluations_file, bp3.ratio_episodes_steps_ratio_params, bp3.ratio_episodes_steps_no_steps_params, save = False)

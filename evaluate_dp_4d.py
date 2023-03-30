@@ -4,6 +4,7 @@ import monte_carlo_4d as mc4
 import benchmark_problems_4d as bp4
 import os
 import matplotlib.pyplot as plt
+import matplotlib
 
 # TRAINING WITH DIFFERENT WIND PARAMETERS AND SAVING POLICIES TO FILES
 # NOTE, wind parameter of evaluation_MDP input does not matter. this will be set using values no_wind_parameters input argument values between 0 and 1.

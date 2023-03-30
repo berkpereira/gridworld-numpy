@@ -4,6 +4,7 @@ import monte_carlo_4d as mc4
 import benchmark_problems_4d as bp4
 import os
 import matplotlib.pyplot as plt
+import matplotlib
 
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib import cm

@@ -5,6 +5,7 @@ import os
 import dynamic_programming_3d as dp3
 import solve_mip3d as mip3
 import monte_carlo_3d as mc3
+import matplotlib
 
 # this will take an MDP problem, solve it via MIP, simulate time steps by sampling MDP dynamics, recompute MIP solutions as needed if the real outcomes
 # deviate from the expected ones at any point.
@@ -265,16 +266,18 @@ def evaluate_mip(eval_MDP, no_evaluations):
 
 if __name__ == "__main__":
     os.system('clear')
-    MDP = dp3.MarkovGridWorld(grid_size=4, direction_probability=0.80,obstacles=np.array([[0,0], [2,2]]), landing_zone = np.array([1,1]), max_altitude = 5)
+    MDP = dp3.MarkovGridWorld(grid_size=13, direction_probability=0.8,obstacles=np.array([[0,0], [2,2]]), landing_zone = np.array([1,1]), max_altitude = 26)
     no_evaluations = 10
-    avg_landed_return, avg_landed_solve_time, avg_landed_solve_no, crashes = evaluate_mip(MDP, no_evaluations)
+    sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(MDP, [3,3])
+    mc3.play_episode(MDP, None, sim_history)
+    #avg_landed_return, avg_landed_solve_time, avg_landed_solve_no, crashes = evaluate_mip(MDP, no_evaluations)
     print()
     print()
-    print(f'Number of MIP evaluations (excluding boundary problems): {no_evaluations}')
-    print(f'Number of simulated crashes: {crashes}')
-    print(f'Simulation crash rate: {crashes/no_evaluations * 100}%')
-    print(f'Average score in NON-CRASHED simulations: {avg_landed_return}')
-    print(f'Average solve time in NON-CRASHED simulations: {avg_landed_return} seconds')
-    print(f'Average no. of solutions in NON-CRASHED simulations: {avg_landed_solve_no}')
+    #print(f'Number of MIP evaluations (excluding boundary problems): {no_evaluations}')
+    #print(f'Number of simulated crashes: {crashes}')
+    #print(f'Simulation crash rate: {crashes/no_evaluations * 100}%')
+    #print(f'Average score in NON-CRASHED simulations: {avg_landed_return}')
+    #print(f'Average solve time in NON-CRASHED simulations: {avg_landed_return} seconds')
+    #print(f'Average no. of solutions in NON-CRASHED simulations: {avg_landed_solve_no}')
     print()
     print()

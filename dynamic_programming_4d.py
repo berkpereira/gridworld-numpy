@@ -1066,6 +1066,10 @@ if __name__ == "__main__":
     os.system('clear')
     #buildings = np.array([[1,1], [3,2], [4,1]], ndmin=2, dtype='int32')
     buildings = np.array([[1,0], [1,1]])
-    MDP = MarkovGridWorld(grid_size = 10, max_altitude=12, obstacles = buildings, landing_zone = np.array([0,0], dtype='int32'), direction_probability=1)
-    optimal_policy, optimal_policy_array = value_iteration(random_walk, MDP, np.inf)
-    mc4.simulate_policy(MDP, optimal_policy, 6)
+    MDP = MarkovGridWorld(grid_size = 13, max_altitude=26, obstacles = buildings, landing_zone = np.array([0,0], dtype='int32'), direction_probability=0.9)
+    optimal_policy, optimal_policy_array, train_time = value_iteration(random_walk, MDP, np.inf, train_time=True)
+    os.system('say RL training completed!')
+    print(f'Train time: {train_time} seconds')
+    mc4.simulate_policy(MDP, optimal_policy, 10)
+    
+    

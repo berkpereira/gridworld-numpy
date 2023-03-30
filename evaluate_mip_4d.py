@@ -4,6 +4,7 @@ import os
 import dynamic_programming_4d as dp4
 import solve_mip4d as mip4
 import monte_carlo_4d as mc4
+import matplotlib
 
 # this will take an MDP problem, solve it via MIP, simulate time steps by sampling MDP dynamics, recompute MIP solutions as needed if the real outcomes
 # deviate from the expected ones at any point.
@@ -92,7 +93,8 @@ def mip_simulate_closed_loop(sim_MDP, sim_mip_initial_state, sim_initial_velocit
         direction_array = MDP.action_to_direction[last_recorded_step[1]][0]
         imminent_2d_state = np.clip(last_recorded_step[2:4] + direction_array, 0, MDP.grid_size - 1)
         for obstacle in MDP.obstacles:
-            if np.array_equal(imminent_2d_state, obstacle) and not np.array_equal(last_recorded_step[2:4], obstacle): # imminent crash that has NOT happened yet
+            # CHECK FOR IMMINENT CRASH that has not happened just yet
+            if np.array_equal(imminent_2d_state, obstacle) and not np.array_equal(last_recorded_step[2:4], obstacle):
                 imminent_step = np.array([MDP.max_altitude-1, last_recorded_step[1], imminent_2d_state[0], imminent_2d_state[1], 0])
                 sim_history = np.append(sim_history, np.array(imminent_step, ndmin=2), axis=0) # add on the imminent crashed state to the history
                 break
@@ -158,16 +160,18 @@ def evaluate_mip(eval_MDP, no_evaluations):
 
 if __name__ == "__main__":
     os.system('clear')
-    MDP = dp4.MarkovGridWorld(grid_size=10, direction_probability=0.90,obstacles=np.array([[0,0], [2,2]]), landing_zone = np.array([1,1]), max_altitude = 20)
+    MDP = dp4.MarkovGridWorld(grid_size=10, direction_probability=0.5, obstacles=np.array([[0,0], [2,2]]), landing_zone = np.array([1,1]), max_altitude = 20)
     no_evaluations = 40
-    avg_landed_return, avg_landed_solve_time, avg_landed_solve_no, crashes = evaluate_mip(MDP, no_evaluations)
+    #avg_landed_return, avg_landed_solve_time, avg_landed_solve_no, crashes = evaluate_mip(MDP, no_evaluations)
+    sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(MDP, [3,3], 0)
+    mc4.play_episode(MDP, None, sim_history)
     print()
     print()
-    print(f'Number of MIP evaluations (excluding boundary problems): {no_evaluations}')
-    print(f'Number of simulated crashes: {crashes}')
-    print(f'Simulation crash rate: {crashes/no_evaluations * 100}%')
-    print(f'Average score in NON-CRASHED simulations: {avg_landed_return}')
-    print(f'Average solve time in NON-CRASHED simulations: {avg_landed_return} seconds')
-    print(f'Average no. of solutions in NON-CRASHED simulations: {avg_landed_solve_no}')
+    #print(f'Number of MIP evaluations (excluding boundary problems): {no_evaluations}')
+    #print(f'Number of simulated crashes: {crashes}')
+    #print(f'Simulation crash rate: {crashes/no_evaluations * 100}%')
+    #print(f'Average score in NON-CRASHED simulations: {avg_landed_return}')
+    #print(f'Average solve time in NON-CRASHED simulations: {avg_landed_return} seconds')
+    #print(f'Average no. of solutions in NON-CRASHED simulations: {avg_landed_solve_no}')
     print()
     print()
