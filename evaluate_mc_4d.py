@@ -95,7 +95,7 @@ def epsilon_plot_evaluations(evaluations_array_txt_file_name, train_epsilon_para
     plt.plot(train_epsilon_params, evaluations[:], 'r-*')
     
     #plt.ylim(np.amin(evaluations), 0)
-    plt.ylim(0, np.amax(evaluations))
+    #plt.ylim(0, np.amax(evaluations))
     plt.grid(True)
     plt.title('Performance of MC policies trained with different epsilon parameters')
     plt.tight_layout()
@@ -215,79 +215,114 @@ def save_ratio_steps_results(evaluations_array, crashes_array, no_evaluations, n
     else:
         print('Did not confirm. Files NOT written.')
 
-def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ratio_params, no_steps_params, save=False):
+def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ratio_params, no_steps_params, surface = True, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=2)
 
-    plot_x = no_episodes_ratio_params
-    plot_y = no_steps_params
-    X, Y = np.meshgrid(plot_x, plot_y)
+    if surface:
+        plot_x = no_episodes_ratio_params
+        plot_y = no_steps_params
+        X, Y = np.meshgrid(plot_x, plot_y)
 
-    indices_x = np.arange(len(plot_x))
-    indices_y = np.arange(len(plot_y))
-    indices_x, indices_y = np.meshgrid(indices_x, indices_y)
-    Z = evaluations[indices_x, indices_y]
+        indices_x = np.arange(len(plot_x))
+        indices_y = np.arange(len(plot_y))
+        indices_x, indices_y = np.meshgrid(indices_x, indices_y)
+        Z = evaluations[indices_x, indices_y]
 
-    fig = plt.figure(figsize=(14,9))
-    ax = fig.add_subplot(111, projection='3d')
+        fig = plt.figure(figsize=(14,9))
+        ax = fig.add_subplot(111, projection='3d')
 
-    # plot evaluations
-    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='hot', linewidth=0, antialiased=False)
+        # plot evaluations
+        surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='hot', linewidth=0, antialiased=False)
 
-    # we also want to plot contour lines of constant training time (i.e., constant product of episodes per step and number of steps).
-    cont_X = np.linspace(np.amin(no_episodes_ratio_params), np.amax(no_episodes_ratio_params), 30)
-    cont_Y = np.linspace(np.amin(no_steps_params), np.amax(no_steps_params), 30)
-    cont_X, cont_Y = np.meshgrid(cont_X, cont_Y)
+        # we also want to plot contour lines of constant training time (i.e., constant product of episodes per step and number of steps).
+        cont_X = np.linspace(np.amin(no_episodes_ratio_params), np.amax(no_episodes_ratio_params), 30)
+        cont_Y = np.linspace(np.amin(no_steps_params), np.amax(no_steps_params), 30)
+        cont_X, cont_Y = np.meshgrid(cont_X, cont_Y)
+        
+        cont_Z = np.multiply(cont_Y, cont_X) # scalar function to view contour lines of.
+        z_contour = 1.1 * np.amax(Z) # "Altitude" at which contour lines are plotted.
+        ax.contour(cont_X, cont_Y, cont_Z, zdir ='z', levels = len(no_episodes_ratio_params), offset=z_contour, linewidths = 5 ,colors = '#0a97a3') # plot contours of cons
+        plt.xlim(np.amin(X), np.amax(X))
+        plt.ylim(np.amin(Y), np.amax(Y))
+        ax.set_zlim(0, 1.1 * np.amax(Z))
+        ax.set_xlabel('Ratio of number of episodes per improvement to size of state space')
+        ax.set_ylabel('Number of policy improvement steps')
+        ax.set_zlabel('Simulated performance')
+        
+        # set viewing angle
+        ax.view_init(elev=26, azim = 49)
+        plt.grid(True)
+        plt.title('Cost function of Monte Carlo policies with varying number of episodes and improvement steps')
+        plt.tight_layout()
     
-    cont_Z = np.multiply(cont_Y, cont_X) # scalar function to view contour lines of.
-    z_contour = 1.1 * np.amax(Z) # "Altitude" at which contour lines are plotted.
-    ax.contour(cont_X, cont_Y, cont_Z, zdir ='z', levels = len(no_episodes_ratio_params), offset=z_contour, linewidths = 5 ,colors = '#0a97a3') # plot contours of cons
-    plt.xlim(np.amin(X), np.amax(X))
-    plt.ylim(np.amin(Y), np.amax(Y))
-    ax.set_zlim(0, 1.1 * np.amax(Z))
-    ax.set_xlabel('Ratio of number of episodes per improvement to size of state space')
-    ax.set_ylabel('Number of policy improvement steps')
-    ax.set_zlabel('Simulated performance')
+    else:
+        no_no_episodes_ratio_params = len(no_episodes_ratio_params)
+        no_mosaic_rows = 3
+
+        plt.figure(figsize=(12,9))
+
+        for j in range(no_no_episodes_ratio_params):
+            plt.subplot(no_mosaic_rows, int(np.ceil(no_no_episodes_ratio_params / no_mosaic_rows)), j+1)
+            plt.plot(no_steps_params, evaluations[:,j], 'r-*')
+            
+            
+            #plt.ylim(np.amin(evaluations), 0)
+            plt.ylim(0, np.amax(evaluations))
+            plt.grid(True)
+            plt.title('Ratio number of episodes: ' + str(round(no_episodes_ratio_params[j],2)))
+        plt.tight_layout()
     
-    # set viewing angle
-    ax.view_init(elev=26, azim = 49)
-    plt.grid(True)
-    plt.title('Cost function of Monte Carlo policies with varying number of episodes and improvement steps')
-    plt.tight_layout()
+    
     if save:
         plt.savefig('out_plot.pdf')
-    #plt.show()
 
-def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no_episodes_ratio_params, no_steps_params, save=False):
+def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no_episodes_ratio_params, no_steps_params, surface = True, save=False):
     crashes = np.loadtxt(crashes_array_txt_file_name, ndmin=1)
     crash_rates = crashes / no_evaluations
 
-    plot_x = no_episodes_ratio_params
-    plot_y = no_steps_params
-    X, Y = np.meshgrid(plot_x, plot_y)
+    if surface:
+        plot_x = no_episodes_ratio_params
+        plot_y = no_steps_params
+        X, Y = np.meshgrid(plot_x, plot_y)
 
-    indices_x = np.arange(len(plot_x))
-    indices_y = np.arange(len(plot_y))
-    indices_x, indices_y = np.meshgrid(indices_x, indices_y)
-    Z = crash_rates[indices_x, indices_y]
+        indices_x = np.arange(len(plot_x))
+        indices_y = np.arange(len(plot_y))
+        indices_x, indices_y = np.meshgrid(indices_x, indices_y)
+        Z = crash_rates[indices_x, indices_y]
 
-    fig = plt.figure(figsize=(14,9))
-    ax = fig.add_subplot(111, projection='3d')
+        fig = plt.figure(figsize=(14,9))
+        ax = fig.add_subplot(111, projection='3d')
 
-    # plot crash rates
-    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='cool', linewidth=0, antialiased=False)
+        # plot crash rates
+        surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='cool', linewidth=0, antialiased=False)
 
-    plt.grid(True)
-    ax.set_xlabel('Ratio of number of episodes per improvement to size of state space')
-    ax.set_ylabel('Number of policy improvement steps')
-    ax.set_zlabel('Crash rate')
-    ax.view_init(elev=26, azim = 49)
-    plt.title('Crash rates of MC policies as function of ratio of number of episodes to state space size and number of imrpovement steps')
-    plt.tight_layout()
+        plt.grid(True)
+        ax.set_xlabel('Ratio of number of episodes per improvement to size of state space')
+        ax.set_ylabel('Number of policy improvement steps')
+        ax.set_zlabel('Crash rate')
+        ax.view_init(elev=26, azim = 49)
+        plt.title('Crash rates of MC policies as function of ratio of number of episodes to state space size and number of imrpovement steps')
+        plt.tight_layout()
+
+    else:
+        no_no_episodes_ratio_params = len(no_episodes_ratio_params)
+        no_mosaic_rows = 3
+
+        plt.figure(figsize=(12,9))
+
+        for j in range(no_no_episodes_ratio_params):
+            plt.subplot(no_mosaic_rows, int(np.ceil(no_no_episodes_ratio_params / no_mosaic_rows)), j+1)
+            plt.plot(no_steps_params, crash_rates[:,j], 'b-*')
+            
+            
+            #plt.ylim(np.amin(evaluations), 0)
+            plt.ylim(0, np.amax(crash_rates))
+            plt.grid(True)
+            plt.title('Ratio number of episodes: ' + str(round(no_episodes_ratio_params[j],2)))
+        plt.tight_layout()
     
     if save:
         plt.savefig('out_plot.pdf')
-    
-    #plt.show()
 
 if __name__ == "__main__":
     epsilon_train = False
@@ -329,10 +364,10 @@ if __name__ == "__main__":
         print(crashes)
         save_ratio_steps_results(evaluations, crashes, bp4.ratio_episodes_steps_no_evaluations, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, bp4.epsilon_MDP.state_space.shape[0], this_dir = True)
 
-    ratio_steps_plot = False
+    ratio_steps_plot = True
     if ratio_steps_plot:
         evaluations_file = 'results/4d/training_ratio_steps/ratio_steps_evaluations_array.txt'
         crashes_file = 'results/4d/training_ratio_steps/ratio_steps_crashes_array.txt'
-        ratio_steps_plot_evaluations(evaluations_file, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, save = False)
-        ratio_steps_plot_crash_rates(crashes_file, bp4.epsilon_no_evaluations, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, save = True)
+        ratio_steps_plot_evaluations(evaluations_file, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, surface = False, save = False)
+        ratio_steps_plot_crash_rates(crashes_file, bp4.epsilon_no_evaluations, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, surface = False, save = False)
         plt.show()
