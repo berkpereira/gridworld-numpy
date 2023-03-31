@@ -1,3 +1,4 @@
+import pickle
 import os
 import time
 import numpy as np
@@ -485,17 +486,11 @@ def run_profiler(function):
 if __name__ == "__main__":
     import benchmark_problems_3d as bp3
     import copy
-    
-    os.system('clear')
-    MDP = copy.deepcopy(bp3.wind_MDP)
-    MDP.direction_probability = 1
-    MDP.prob_other_directions = (1 - MDP.direction_probability) / 4
-    optimal_policy, optimal_policy_array = policy_iteration(stay_put, MDP, evaluation_max_iterations=np.inf, improvement_max_iterations=np.inf)
-    mc3.simulate_policy(MDP, optimal_policy, 10)
 
-    """
-    MDP_no_wind = copy.deepcopy(MDP)
-    MDP_no_wind.direction_probability = 1
-    MDP_no_wind.prob_other_directions = (1 - MDP_no_wind.direction_probability) / 4
-    mc3.simulate_policy(MDP_no_wind, optimal_policy, 10)
-    """
+
+    with open("benchmark-problems/3d/43_wind_0,9.p", 'rb') as f:
+            train_MDP = pickle.load(f) # load MDP for training (with correct wind parameter as decided to be used during training)
+
+    optimal_policy, optimal_policy_array, training_time = value_iteration(random_walk, train_MDP, np.inf, train_time=True)
+    print(training_time)
+    mc3.simulate_policy(train_MDP, optimal_policy, 10)
