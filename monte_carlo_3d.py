@@ -2,6 +2,7 @@ from scipy.spatial.distance import cityblock
 import dynamic_programming_3d as dp3
 import numpy as np
 import os
+import time
 
 
 import matplotlib.pyplot as plt
@@ -196,11 +197,13 @@ def monte_carlo_array_to_policy(policy_array, MDP, epsilon):
     # return policy function
     return policy
 
-def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no_episodes=50, improvement_max_iterations=50):
+def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no_episodes=50, improvement_max_iterations=50, train_time = False):
     iteration_count = 1
     policy_is_stable = False
     current_policy = policy
     current_policy_array = np.ones(shape=MDP.problem_shape, dtype='int32') * -10 # initialise greedy policy array to a bogus instance
+
+    st = time.time()
     while policy_is_stable is False and iteration_count <= improvement_max_iterations:
         # as per Sutton Barto 2nd, chapter 4.3, next iteration is better-converging if we
         # start with the previous value estimate, hence the assignment into initial_value
@@ -224,13 +227,18 @@ def monte_carlo_policy_iteration(policy, MDP, exploration_epsilon, evaluation_no
         current_policy_array = new_policy_array
         current_policy = monte_carlo_array_to_policy(new_policy_array, MDP, epsilon=exploration_epsilon)
         iteration_count += 1
-        
+    
+    et = time.time()
     print('Final policy array:')
     print(current_policy_array[:-1])
     print()
     # in the end, best to return a DETERMINISTIC VERSION OF THE POLICY
     final_policy = dp3.array_to_policy(current_policy_array, MDP)
-    return final_policy, current_policy_array
+    if train_time is False:
+        return final_policy, current_policy_array
+    else:
+        training_time = et - st
+        return final_policy, current_policy_array, training_time
 
 
 if __name__ == '__main__':
