@@ -30,6 +30,7 @@ class GridGUI(tk.Frame):
         x1 = (lz_x + 1) * 400 // self.grid_size
         y1 = (lz_y + 1) * 400 // self.grid_size
         self.grid.create_rectangle(x0, y0, x1, y1, fill="green")
+        self.grid.create_text(x0 + (x1 - x0) / 2, y0 + (y1 - y0) / 2, text=f'{lz_x}, {lz_y}')
 
         # Bind click event to grid
         self.grid.bind("<Button-1>", self.mark)
@@ -44,6 +45,7 @@ class GridGUI(tk.Frame):
             x1 = (x + 1) * 400 // self.grid_size
             y1 = (y + 1) * 400 // self.grid_size
             self.grid.create_rectangle(x0, y0, x1, y1, fill="red")
+            self.grid.create_text(x0 + (x1 - x0) / 2, y0 + (y1 - y0) / 2, text=f'{x}, {y}')
 
     def reset(self):
         self.grid.delete("all")
@@ -55,6 +57,7 @@ class GridGUI(tk.Frame):
         x1 = (lz_x + 1) * 400 // self.grid_size
         y1 = (lz_y + 1) * 400 // self.grid_size
         self.grid.create_rectangle(x0, y0, x1, y1, fill="green")
+        self.grid.create_text(x0 + (x1 - x0) / 2, y0 + (y1 - y0) / 2, text=f'{lz_x}, {lz_y}')
         # Draw grid lines
         for i in range(self.grid_size):
             x = i * 400 // self.grid_size
@@ -63,8 +66,8 @@ class GridGUI(tk.Frame):
 
 if __name__ == "__main__":
     # Inputs here.
-    grid_size = 10
-    landing_zone = [5, 3]
+    grid_size = 13
+    landing_zone = [6, 6]
     
 
     root = tk.Tk()

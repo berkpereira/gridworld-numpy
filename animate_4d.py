@@ -5,23 +5,27 @@ import dynamic_programming_4d as dp4
 import solve_mip4d as mip4
 import numpy as np
 import copy
+import os
+import pickle
 
 
 if __name__ == "__main__":
-    import benchmark_problems_4d as bp4
-    #policy_name = 'trained_array_wind_0,8'
-    #file_name = 'results/4d/training_wind/' + policy_name
-    policy_name = 'trained_array_epsilon_0,2'
-    file_name = 'results/4d/training_epsilon/' + policy_name
-    file_name = file_name.replace('.', ',')
-    file_name = file_name + '.npy'
-    policy_array = np.load(file_name)
+    import os
 
-    #policy = dp4.array_to_policy(policy_array, bp4.wind_MDP)
-    policy = dp4.array_to_policy(policy_array, bp4.epsilon_MDP)
-    
-    #MDP = copy.deepcopy(bp4.wind_MDP)
-    #MDP.direction_probability = 0.8
-    #MDP.prob_other_directions = (1 - MDP.direction_probability) / 2
-    #mc4.simulate_policy(MDP, policy, 10, policy_name)
-    mc4.simulate_policy(bp4.epsilon_MDP, policy, 10, policy_name)
+    dir_path = 'benchmark-problems/4d/'
+    files = sorted(os.listdir(dir_path))
+
+    # Create an empty list to store the objects
+    objects = []
+
+    # Iterate over the files in alphabetical order
+    for filename in files:
+        # Open the file in binary mode
+        with open(os.path.join(dir_path, filename), "rb") as file:
+            # Deserialize the object from the file and append it to the list
+            obj = pickle.load(file)
+            objects.append(obj)
+
+    for MDP in objects:
+        history = mc4.generate_episode(MDP, dp4.random_walk)
+        mc4.play_episode(MDP, dp4.random_walk, history)

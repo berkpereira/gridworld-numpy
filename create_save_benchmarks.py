@@ -7,11 +7,12 @@ import pickle
 # define parameters
 grid_sizes = range(4, 14)
 IDs = range(1, 4)
-wind_params = np.arange(0.70, 1.05, 0.05)
+#wind_params = np.arange(0.70, 1.05, 0.05)
+wind_params = [1.0]
 
 
 # IN ORDER TO CHANGE BETWEEN 4D AND 3D, change the below variable
-dimension = 3
+dimension = 4
 
 for grid_size in grid_sizes:
     for ID in IDs:
