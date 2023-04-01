@@ -11,8 +11,7 @@ import os
 # define MDP file name parameters.
 # upper limits are exclusive in these range functions.
 grid_sizes = range(4, 14)
-IDs = range(1, 4)
-#wind_params = np.arange(0.70, 1.05, 0.05)
+IDs = range(1, 5)
 
 """
 
@@ -37,7 +36,7 @@ no_policy_steps_4d = 3  # MC
 
 
 # TO SWITCH BETWEEN 3D and 4D, CHANGE THE INT BELOW
-dimension = 4
+dimension = 3
 
 
 
@@ -50,7 +49,7 @@ if dimension == 3:
 elif dimension == 4:
     train_time_df = pd.DataFrame(columns=['DP4', 'MC4'])
 else:
-    Exception("Invalid dimension! Must be either 3 or 4.")
+    raise Exception("Invalid dimension! Must be either 3 or 4.")
 
 
 
@@ -61,7 +60,7 @@ for grid_size in grid_sizes:
         elif dimension == 4:
             MDP_file = f"benchmark-problems/4d/{grid_size}{ID}_wind_{str(wind_train_4d).replace('.', ',')}.p"
         else:
-            Exception("Invalid dimension! Must be either 3 or 4.")
+            raise Exception("Invalid dimension! Must be either 3 or 4.")
         
         with open(MDP_file, 'rb') as f:
             train_MDP = pickle.load(f) # load MDP for training (with correct wind parameter as decided to be used during training)
@@ -120,8 +119,10 @@ elif dimension == 4:
     train_time_file_name = f"benchmark-policies/4d/wind_{str(wind_train_4d).replace('.',',')}_train_time.pkl"
     train_time_df.to_pickle(train_time_file_name)
 else:
-    Exception("Invalid dimension! Must be either 3 or 4.")
+    raise Exception("Invalid dimension! Must be either 3 or 4.")
 
 
 
 os.system('say learning finished.')
+print('training times dataframe:')
+print(train_time_df)
