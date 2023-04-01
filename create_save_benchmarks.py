@@ -11,7 +11,7 @@ wind_params = np.arange(0.70, 1.02, 0.05)
 
 
 # IN ORDER TO CHANGE BETWEEN 4D AND 3D, change the below variable
-dimension = 3
+dimension = 4
 
 for grid_size in grid_sizes:
     for ID in IDs:
@@ -32,7 +32,7 @@ for grid_size in grid_sizes:
                 MDP = dp3.MarkovGridWorld(grid_size=grid_size, discount_factor=1, direction_probability=wind_param,
                                         obstacles=obstacles, landing_zone=landing_zone, max_altitude=grid_size * 2)
             else:
-                Exception("Invalid dimension! Must be 3 or 4.")
+                raise Exception("Invalid dimension! Must be 3 or 4.")
 
             # save class instance to file
             if dimension == 4:
@@ -40,7 +40,7 @@ for grid_size in grid_sizes:
             elif dimension == 3:
                 filename = f"benchmark-problems/3d/{grid_size}{ID}_wind_{str(round(wind_param,2)).replace('.', ',')}.p"
             else:
-                Exception("Invalid dimension! Must be 3 or 4.")
+                raise Exception("Invalid dimension! Must be 3 or 4.")
 
             with open(filename, "wb") as f:
                 pickle.dump(MDP, f)
