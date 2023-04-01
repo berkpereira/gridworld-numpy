@@ -36,7 +36,7 @@ no_policy_steps_4d = 3  # MC
 
 
 # TO SWITCH BETWEEN 3D and 4D, CHANGE THE INT BELOW
-dimension = 4
+dimension = 'bogus'
 
 
 
