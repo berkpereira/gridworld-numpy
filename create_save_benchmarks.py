@@ -26,11 +26,21 @@ for grid_size in grid_sizes:
         for wind_param in wind_params:
             # create class instance
             if dimension == 4:
-                MDP = dp4.MarkovGridWorld(grid_size=grid_size, discount_factor=1, direction_probability=wind_param,
+                if abs(wind_param - 1) < 0.0001:
+                    MDP = dp4.MarkovGridWorld(grid_size=grid_size, discount_factor=1, direction_probability=1,
+                                        obstacles=obstacles, landing_zone=landing_zone, max_altitude=grid_size * 2)
+                    print('Using integer 1!')
+                else:
+                    MDP = dp4.MarkovGridWorld(grid_size=grid_size, discount_factor=1, direction_probability=wind_param,
                                         obstacles=obstacles, landing_zone=landing_zone, max_altitude=grid_size * 2)
             elif dimension == 3:
-                MDP = dp3.MarkovGridWorld(grid_size=grid_size, discount_factor=1, direction_probability=wind_param,
-                                        obstacles=obstacles, landing_zone=landing_zone, max_altitude=grid_size * 2)
+                if abs(wind_param - 1) < 0.0001:
+                    MDP = dp3.MarkovGridWorld(grid_size=grid_size, discount_factor=1, direction_probability=1,
+                                            obstacles=obstacles, landing_zone=landing_zone, max_altitude=grid_size * 2)
+                    print('Using integer 1!')
+                else:
+                    MDP = dp3.MarkovGridWorld(grid_size=grid_size, discount_factor=1, direction_probability=wind_param,
+                                            obstacles=obstacles, landing_zone=landing_zone, max_altitude=grid_size * 2)
             else:
                 raise Exception("Invalid dimension! Must be 3 or 4.")
 

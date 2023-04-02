@@ -5,6 +5,8 @@ import monte_carlo_4d as mc4
 import evaluate_mip_3d as emip3
 import evaluate_mip_4d as emip4
 
+from tqdm import tqdm
+
 import numpy as np
 import pandas as pd
 import pickle
@@ -33,17 +35,23 @@ def evaluate_rl_df(eval_MDP, eval_MDP_ID, dimension, method_str, policy, no_eval
     df.loc[:, 'MDP_ID'] = eval_MDP_ID
 
     if dimension == 3:
-        for i in range(no_evaluations):
+        for i in tqdm(range(no_evaluations)):
             history = mc3.generate_episode(eval_MDP, policy)
             reward = history[-1, -1]
-            l1_norm = int(1 / reward) - 1 # BEWARE OF THIS, WHICH ONLY MAKES SENSE FOR RECIPROCAL REWARD FUNCTION
-            df.loc[i, 'l1_norm'] = l1_norm
+            if reward != 0:
+                l1_norm = int(1 / reward) - 1 # BEWARE OF THIS, WHICH ONLY MAKES SENSE FOR RECIPROCAL REWARD FUNCTION
+                df.loc[i, 'l1_norm'] = l1_norm
+            else:
+                pass # leave entry as NaN
     elif dimension == 4:
-        for i in range(no_evaluations):
+        for i in tqdm(range(no_evaluations)):
             history = mc4.generate_episode(eval_MDP, policy)
             reward = history[-1, -1]
-            l1_norm = int(1 / reward) - 1 # BEWARE OF THIS, WHICH ONLY MAKES SENSE FOR RECIPROCAL REWARD FUNCTION
-            df.loc[i, 'l1_norm'] = l1_norm
+            if reward != 0:
+                l1_norm = int(1 / reward) - 1 # BEWARE OF THIS, WHICH ONLY MAKES SENSE FOR RECIPROCAL REWARD FUNCTION
+                df.loc[i, 'l1_norm'] = l1_norm
+            else:
+                pass # leave entry as NaN
     else:
         raise Exception('Invalid dimension! Must be either 3 or 4.')
     
@@ -51,18 +59,18 @@ def evaluate_rl_df(eval_MDP, eval_MDP_ID, dimension, method_str, policy, no_eval
     return df
 
 # Define metadata
-grid_sizes = range(4, 14)
-IDs = range(1, 5)
-wind_params = np.arange(0.70, 1.02, 0.05)
-no_rl_evaluations = 5000                     # NEW (number of simulations to run per solution method per benchmark MDP)
-no_ip_evaluations = 500 # lower because it takes longer to train
+grid_sizes = range(4, 5)
+IDs = range(1, 3)
+wind_params = np.arange(0.95, 1.02, 0.05)
+no_rl_evaluations = 50                     # NEW (number of simulations to run per solution method per benchmark MDP)
+no_ip_evaluations = 5 # lower because it takes longer to simulate
 
 # CHANGE DIMENSION HERE
-dimension = 'bogus'
+dimension = 3
 
 # Confirm to go on.
 eval_confirm = input(f'Confirm evaluation with {dimension} dimensions? Type "confirm_eval" to confirm. ')
-if eval_confirm == "confirm_eval":
+if eval_confirm == 'confirm_eval':
     print('Evaluation confirmed.')
 else:
     raise Exception('Evaluation NOT confirmed!')
@@ -78,7 +86,7 @@ if dimension != 3 and dimension != 4:
 no_records = len(grid_sizes) * len(IDs) * len(wind_params) * (2 * no_rl_evaluations + no_ip_evaluations)
 complete_df = pd.DataFrame(columns=['dimension', 'MDP_ID', 'sol_method', 'l1_norm', 'no_solutions', 'solver_time'], index=range(no_records))
 
-
+complete_df_index = 0
 # Iterate and evaluate
 for grid_size in grid_sizes:
     for ID in IDs:
@@ -106,12 +114,14 @@ for grid_size in grid_sizes:
 
 
         for wind_param in wind_params:
+
             # Load benchmark MDP
-            eval_MDP_file = f"benchmark_problems/{dimension}d/{grid_size}{ID}_wind_{str(round(wind_param, 2)).replace('.',',')}.p"
+            eval_MDP_file = f"benchmark-problems/{dimension}d/{grid_size}{ID}_wind_{str(round(wind_param, 2)).replace('.',',')}.p"
             with open(eval_MDP_file, 'rb') as f:
                 eval_MDP = pickle.load(f) # deserialise MDP class instance from pickled file.
             
             # EVALUATE IP
+            print(f'Evaluating {grid_size}{ID}, wind {wind_param}, IP')
             if dimension == 3:
                 ip_df = emip3.evaluate_mip_df(eval_MDP, int(f'{grid_size}{ID}'), no_ip_evaluations)
             elif dimension == 4:
@@ -120,5 +130,20 @@ for grid_size in grid_sizes:
                 raise Exception('Invalid dimension!')
             
             # EVALUATE RL
+            print(f'Evaluating {grid_size}{ID}, wind {wind_param}, MC')
             mc_df = evaluate_rl_df(eval_MDP, int(f'{grid_size}{ID}'), dimension, 'MC', mc_policy, no_rl_evaluations)
+            print(f'Evaluating {grid_size}{ID}, wind {wind_param}, DP')
             dp_df = evaluate_rl_df(eval_MDP, int(f'{grid_size}{ID}'), dimension, 'DP', dp_policy, no_rl_evaluations)
+
+
+            all_df = pd.concat([ip_df, mc_df, dp_df], ignore_index=True)
+            all_df.index = all_df.index.map(lambda x: x + complete_df_index)
+            complete_df.loc[complete_df_index:(complete_df_index + all_df.shape[0]) - 1] = all_df # NEED the -1 because these limits are INCLUSIVE, which is unusual
+            complete_df_index += all_df.shape[0]
+
+# WRITE RESULTS TO FILE HERE
+# .......
+
+print(complete_df)
+
+

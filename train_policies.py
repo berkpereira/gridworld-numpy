@@ -36,14 +36,15 @@ no_policy_steps_4d = 3  # MC
 
 
 # TO SWITCH BETWEEN 3D and 4D, CHANGE THE INT BELOW
-dimension = 'bogus'
+dimension = 3
 
 
 confirm_str = input(f'Confirm training process for {dimension} dimensions? Type "confirm_train" to confirm. ')
-if confirm_str == "contirm_train":
+if confirm_str == 'contirm_train':
     pass
 else:
-    raise Exception('Training not confirmed.')
+    #raise Exception('Training not confirmed.')
+    pass
 
 
 
@@ -77,7 +78,7 @@ for grid_size in grid_sizes:
 
             # save DP results
             dp_policy_array_file_name = f"benchmark-policies/3d/dp/{grid_size}{ID}_wind_{str(wind_train_3d).replace('.',',')}_policy_array"
-            np.save(dp_policy_array_file_name, dp_policy_array)
+            #np.save(dp_policy_array_file_name, dp_policy_array)
 
             # train Monte Carlo policy
             no_episodes_3d = int(np.ceil(ratio_episodes_3d * train_MDP.state_space.shape[0]))
@@ -85,7 +86,7 @@ for grid_size in grid_sizes:
 
             # save MC results
             mc_policy_array_file_name = f"benchmark-policies/3d/mc/{grid_size}{ID}_wind_{str(wind_train_3d).replace('.',',')}_policy_array"
-            np.save(mc_policy_array_file_name, mc_policy_array)
+            #np.save(mc_policy_array_file_name, mc_policy_array)
 
             # update training time dataframe
             train_time_df.loc[f"{grid_size}{ID}_wind_{str(wind_train_3d).replace('.',',')}"] = [dp_train_time, mc_train_time]
@@ -98,7 +99,7 @@ for grid_size in grid_sizes:
 
             # save DP results
             dp_policy_array_file_name = f"benchmark-policies/4d/dp/{grid_size}{ID}_wind_{str(wind_train_4d).replace('.',',')}_policy_array"
-            np.save(dp_policy_array_file_name, dp_policy_array)
+            #np.save(dp_policy_array_file_name, dp_policy_array)
 
             # train Monte Carlo policy
             no_episodes_4d = int(np.ceil(ratio_episodes_4d * train_MDP.state_space.shape[0]))
@@ -106,7 +107,7 @@ for grid_size in grid_sizes:
 
             # save MC results
             mc_policy_array_file_name = f"benchmark-policies/4d/mc/{grid_size}{ID}_wind_{str(wind_train_4d).replace('.',',')}_policy_array"
-            np.save(mc_policy_array_file_name, mc_policy_array)
+            #np.save(mc_policy_array_file_name, mc_policy_array)
 
             # update training time dataframe
             train_time_df.loc[f"{grid_size}{ID}_wind_{str(wind_train_4d).replace('.',',')}"] = [dp_train_time, mc_train_time]
@@ -118,10 +119,10 @@ for grid_size in grid_sizes:
 # save training times dataframe to pickle
 if dimension == 3:
     train_time_file_name = f"benchmark-policies/3d/wind_{str(wind_train_3d).replace('.',',')}_train_time.pkl"
-    train_time_df.to_pickle(train_time_file_name)
+    #train_time_df.to_pickle(train_time_file_name)
 elif dimension == 4:
     train_time_file_name = f"benchmark-policies/4d/wind_{str(wind_train_4d).replace('.',',')}_train_time.pkl"
-    train_time_df.to_pickle(train_time_file_name)
+    #train_time_df.to_pickle(train_time_file_name)
 else:
     raise Exception("Invalid dimension! Must be either 3 or 4.")
 
