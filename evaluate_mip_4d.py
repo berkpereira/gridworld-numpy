@@ -1,4 +1,6 @@
 import numpy as np
+import time
+import pandas as pd
 import os
 
 import dynamic_programming_4d as dp4
@@ -105,7 +107,7 @@ def mip_simulate_closed_loop(sim_MDP, sim_mip_initial_state, sim_initial_velocit
 
     return sim_history, sim_mip_solutions, sim_compute_time
 
-
+# this function evaluates and returns aggregate performance measures over a number of evaluations.
 def evaluate_mip(eval_MDP, no_evaluations):
     
     cumulative_score = 0
@@ -155,23 +157,77 @@ def evaluate_mip(eval_MDP, no_evaluations):
     average_landed_solve_no = landed_solve_no / (no_evaluations - crashes)
     return average_landed_return, average_landed_solve_time, average_landed_solve_no, crashes
 
+# this function evaluates and returns a dataframe with records for each simulation that was run. Data aggregate measures can be taken later on in whichever way we require.
+def evaluate_mip_df(eval_MDP, eval_MDP_ID, no_evaluations):
+    # Initialise dataframe to return all the data. Values set default to NaN.
+    df = pd.DataFrame(columns=['dimension', 'MDP_ID', 'sol_method', 'l1_norm', 'no_solutions', 'solver_time'], index=range(no_evaluations))
 
+    col_dtypes = {'dimension':'uint8', 'MDP_ID':'uint8', 'sol_method':'category', 'l1_norm':'float32', 'no_solutions':'float16', 'solver_time':'float32'}
 
+    # fill out all rows with the same value wherever relevant.
+    df.loc[:, 'dimension'] = 4
+    df.loc[:, 'sol_method'] = 'IP'
+    df.loc[:, 'MDP_ID'] = eval_MDP_ID
+    
+    evaluation_no = 0
+    while evaluation_no < no_evaluations:
+        crashed = False
+        # we need to generate a random initial state that isn't infeasible straight away,
+        # e.g., a boundary state heading into the boundary, stuff which the IP would have issues computing to begin with.
+        # we do this at the same time as we solve the full problem.
+        sim_history = False
+        while sim_history is False:
+            sim_initial_velocity_index = np.random.randint(0,4)
+            sim_mip_initial_state = np.array([np.random.randint(0, eval_MDP.grid_size), np.random.randint(0, eval_MDP.grid_size)], dtype='int32')
+            sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(sim_MDP=eval_MDP, sim_mip_initial_state=sim_mip_initial_state, sim_initial_velocity_index=sim_initial_velocity_index)
+
+        # check if agent crashed
+        for obstacle in eval_MDP.obstacles:
+            if np.array_equal(sim_history[-1,2:4], obstacle): # crashed
+                # no score added, but we DO include this, hence fill out as appropriate:
+                df.loc[evaluation_no, 'l1_norm'] = np.nan
+                df.loc[evaluation_no, 'no_solutions'] = sim_mip_solutions
+                df.loc[evaluation_no, 'solver_time'] = sim_compute_time
+                evaluation_no += 1
+                crashed = True
+                break
+        
+        # agent crashed, it's taken care of, go on to the next one.
+        if crashed:
+            continue
+
+        # problem stopped early without a crash --> BOUNDARY PROBLEM.
+        # we will IGNORE these cases.
+        if sim_history[-1,0] > 0 and not crashed:
+            # do NOT increment evaluation_no
+            continue
+
+        # we are finally left with cases where agent DID land.
+        # BEWARE OF THE BELOW WHICH ONLY MAKES SENSE WITH L-1 NORM METRIC AND RECIPROCAL REWARD
+        df.loc[evaluation_no, 'l1_norm'] = int(1 / eval_MDP.reward(sim_history[-1,:4])) - 1
+        df.loc[evaluation_no, 'no_solutions'] = sim_mip_solutions
+        df.loc[evaluation_no, 'solver_time'] = sim_compute_time
+        evaluation_no += 1
+
+    df = df.astype(col_dtypes)
+    return df
 
 if __name__ == "__main__":
     os.system('clear')
-    MDP = dp4.MarkovGridWorld(grid_size=10, direction_probability=0.5, obstacles=np.array([[0,0], [2,2]]), landing_zone = np.array([1,1]), max_altitude = 20)
-    no_evaluations = 40
-    #avg_landed_return, avg_landed_solve_time, avg_landed_solve_no, crashes = evaluate_mip(MDP, no_evaluations)
-    sim_history, sim_mip_solutions, sim_compute_time = mip_simulate_closed_loop(MDP, [3,3], 0)
-    mc4.play_episode(MDP, None, sim_history)
-    print()
-    print()
-    #print(f'Number of MIP evaluations (excluding boundary problems): {no_evaluations}')
-    #print(f'Number of simulated crashes: {crashes}')
-    #print(f'Simulation crash rate: {crashes/no_evaluations * 100}%')
-    #print(f'Average score in NON-CRASHED simulations: {avg_landed_return}')
-    #print(f'Average solve time in NON-CRASHED simulations: {avg_landed_return} seconds')
-    #print(f'Average no. of solutions in NON-CRASHED simulations: {avg_landed_solve_no}')
-    print()
-    print()
+    MDP = dp4.MarkovGridWorld(grid_size=10, direction_probability=1, obstacles=np.array([[0,0], [2,2]]), landing_zone = np.array([1,1]), max_altitude = 20)
+    no_evaluations = 20
+
+    df_s = time.time()
+    evaluations_df = evaluate_mip_df(MDP, 200, no_evaluations)
+    df_e = time.time()
+    
+    """
+    n_s = time.time()
+    evaluate_mip(MDP, no_evaluations)
+    n_e = time.time()
+    print(f'Time for aggregate evaluation: {n_e - n_s} seconds')
+    """
+    
+    print(f'Time for df: {df_e - df_s} seconds')
+
+    print(evaluations_df)

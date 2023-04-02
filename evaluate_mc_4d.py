@@ -5,6 +5,7 @@ import benchmark_problems_4d as bp4
 import os
 import matplotlib.pyplot as plt
 import matplotlib
+import pandas as pd
 
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib import cm
@@ -323,6 +324,9 @@ def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no
     
     if save:
         plt.savefig('out_plot.pdf')
+
+
+
 
 if __name__ == "__main__":
     epsilon_train = False

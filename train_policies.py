@@ -39,7 +39,11 @@ no_policy_steps_4d = 3  # MC
 dimension = 'bogus'
 
 
-
+confirm_str = input(f'Confirm training process for {dimension} dimensions? Type "confirm_train" to confirm. ')
+if confirm_str == "contirm_train":
+    pass
+else:
+    raise Exception('Training not confirmed.')
 
 
 
