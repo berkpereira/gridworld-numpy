@@ -122,9 +122,19 @@ def mip_history_and_actions_from_mdp(MDP, initial_state, initial_velocity_index,
     mip_no_obstacles = ampl.get_parameter('no_obstacles')
     mip_no_obstacles.set(MDP.obstacles.shape[0])
     mip_obstacles = ampl.get_parameter('obstacles')
-    for i in range(MDP.obstacles.shape[0]):
-        mip_obstacles[i,0] = int(MDP.obstacles[i,0])
-        mip_obstacles[i,1] = int(MDP.obstacles[i,1])
+    if MDP.obstacles.shape[1] > 0:
+        for i in range(MDP.obstacles.shape[0]):
+            mip_obstacles[i,0] = int(MDP.obstacles[i,0])
+            mip_obstacles[i,1] = int(MDP.obstacles[i,1])
+    else: # Relax obstacle avoidance constraints if MDP has no obstacles.
+        obstacle_constraint_one = ampl.get_constraint('AvoidObstacleRowPos')
+        obstacle_constraint_two = ampl.get_constraint('AvoidObstacleRowNeg')
+        obstacle_constraint_three = ampl.get_constraint('AvoidObstacleColPos')
+        obstacle_constraint_four = ampl.get_constraint('AvoidObstacleColNeg')
+        obstacle_constraint_one.drop()
+        obstacle_constraint_two.drop()
+        obstacle_constraint_three.drop()
+        obstacle_constraint_four.drop()
 
 
     # solve integer optimisation problem

@@ -111,7 +111,7 @@ def mip_history_and_actions_from_mdp(MDP, initial_state, ampl):
     mip_initial_state.set_values([initial_state[0], initial_state[1]])
 
     # Here we will also address obstacles.
-    # We drop the obstacles constraint if there aren't any.
+    # We drop the obstacles constraints if there aren't any.
     mip_no_obstacles = ampl.get_parameter('no_obstacles')
     mip_no_obstacles.set(MDP.obstacles.shape[0])
     mip_obstacles = ampl.get_parameter('obstacles')
