@@ -56,7 +56,7 @@ def mdp_from_mip(ampl):
     landing_zone = np.array([ampl.get_parameter('landing').get_values().to_pandas()['landing'][0], ampl.get_parameter('landing').get_values().to_pandas()['landing'][1]], dtype='int32')
     
     # missing OBSTACLES
-    MDP = MarkovGridWorld(grid_size=grid_size, obstacles =np.array([], dtype='int32') , landing_zone=landing_zone, max_altitude=max_altitude)
+    MDP = dp3.MarkovGridWorld(grid_size=grid_size, obstacles =np.array([], dtype='int32') , landing_zone=landing_zone, max_altitude=max_altitude)
     return MDP
 
 def get_velocities(velocities_vec):
@@ -188,7 +188,7 @@ def actions_from_mip_variables(velocities, max_altitude):
 if __name__ == "__main__":
     ampl = initialise_ampl()
     #MDP = MarkovGridWorld(grid_size=20, obstacles=np.array([[4,4], [5,6], [13,4], [3,16], [12,12], [16,6]]), landing_zone = np.array([6,6]), max_altitude=20)
-    test_MDP = MarkovGridWorld(grid_size=5, direction_probability=1, obstacles=np.array([[0,0]]), landing_zone=np.array([2,2]), max_altitude=6)
+    test_MDP = dp3.MarkovGridWorld(grid_size=5, direction_probability=1, obstacles=np.array([[0,0]]), landing_zone=np.array([2,2]), max_altitude=6)
     initial_state = [1,1]
 
     # mip_history_from_mdp is the crucial function here 
