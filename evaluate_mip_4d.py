@@ -160,14 +160,15 @@ def evaluate_mip(eval_MDP, no_evaluations):
 # this function evaluates and returns a dataframe with records for each simulation that was run. Data aggregate measures can be taken later on in whichever way we require.
 def evaluate_mip_df(eval_MDP, eval_MDP_ID, no_evaluations):
     # Initialise dataframe to return all the data. Values set default to NaN.
-    df = pd.DataFrame(columns=['dimension', 'MDP_ID', 'sol_method', 'l1_norm', 'no_solutions', 'solver_time'], index=range(no_evaluations))
+    df = pd.DataFrame(columns=['dimension', 'MDP_ID', 'wind_param', 'sol_method', 'l1_norm', 'no_solutions', 'solver_time'], index=range(no_evaluations))
 
-    col_dtypes = {'dimension':'uint8', 'MDP_ID':'uint8', 'sol_method':'category', 'l1_norm':'float32', 'no_solutions':'float16', 'solver_time':'float32'}
+    col_dtypes = {'dimension':'uint8', 'MDP_ID':'uint8', 'wind_param':'float16', 'sol_method':'category', 'l1_norm':'float32', 'no_solutions':'float16', 'solver_time':'float32'}
 
     # fill out all rows with the same value wherever relevant.
     df.loc[:, 'dimension'] = 4
     df.loc[:, 'sol_method'] = 'IP'
     df.loc[:, 'MDP_ID'] = eval_MDP_ID
+    df.loc[:, 'wind_param'] = eval_MDP.direction_probability
     
     evaluation_no = 0
     while evaluation_no < no_evaluations:
