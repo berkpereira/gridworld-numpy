@@ -62,11 +62,11 @@ def evaluate_rl_df(eval_MDP, eval_MDP_ID, dimension, method_str, policy, no_eval
     return df
 
 # Define metadata
-grid_sizes = range(4, 7)
+grid_sizes = range(4, 6)
 IDs = range(1, 5)
 wind_params = np.arange(0.80, 1.02, 0.05)
 no_rl_evaluations = 3000                     # NEW (number of simulations to run per solution method per benchmark MDP)
-no_ip_evaluations = 1 # lower because it takes longer to simulate
+no_ip_evaluations = 300 # lower because it takes longer to simulate
 
 # CHANGE DIMENSION HERE
 dimension = 3
@@ -157,5 +157,7 @@ print(f'Wind parameters: {list(wind_params)}')
 print(f'Number of RL evaluations: {no_rl_evaluations}')
 print(f'Number of IP evaluations: {no_ip_evaluations}')
 
+
+# HERE WE SAVE IT
 results_file_name = f'{dimension}d-grids-{min(list(grid_sizes))}-{max(list(grid_sizes))}-IDs-{min(list(IDs))}-{max(list(IDs))}-winds-{round(min(list(wind_params)), 2)}-{round(max(list(wind_params)), 2)}-noRL-{no_rl_evaluations}-noIP-{no_ip_evaluations}.csv'
 complete_df.to_csv(results_file_name, index=False)
