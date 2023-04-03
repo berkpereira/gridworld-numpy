@@ -31,13 +31,13 @@ def solve_mip(ampl):
 
     # specify the solver to use
     ampl.option["solver"] = "cplex"
+    ampl.setOption('cplex_options', 'outlev=0') # no output messages printed to console
 
     # solve the problem
     st = time.time()
     ampl.solve()
     et = time.time()
     solve_time = et - st
-    print(f'Done in {solve_time} seconds.')
 
 
     # stop here if the model was not solved

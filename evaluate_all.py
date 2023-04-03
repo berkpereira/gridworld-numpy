@@ -12,11 +12,13 @@ import pandas as pd
 import pickle
 import os
 
+os.system('clear')
+
 # EVALUATE BENCHMARK POLICIES AND RETURN DATAFRAME WITH RELEVANT DATA
 def evaluate_rl_df(eval_MDP, eval_MDP_ID, dimension, method_str, policy, no_evaluations):
-    df = pd.DataFrame(columns=['dimension', 'MDP_ID', 'sol_method', 'l1_norm', 'no_solutions', 'solver_time'], index=range(no_evaluations))
+    df = pd.DataFrame(columns=['dimension', 'MDP_ID', 'wind_param', 'sol_method', 'l1_norm', 'no_solutions', 'solver_time'], index=range(no_evaluations))
     
-    col_dtypes = {'dimension':'uint8', 'MDP_ID':'uint8', 'sol_method':'category', 'l1_norm':'float32', 'no_solutions':'float16', 'solver_time':'float32'}
+    col_dtypes = {'dimension':'uint8', 'MDP_ID':'uint8', 'wind_param':'float16', 'sol_method':'category', 'l1_norm':'float32', 'no_solutions':'float16', 'solver_time':'float32'}
 
     # fill out all rows with the same value wherever relevant.
     if dimension == 4:
@@ -56,14 +58,15 @@ def evaluate_rl_df(eval_MDP, eval_MDP_ID, dimension, method_str, policy, no_eval
         raise Exception('Invalid dimension! Must be either 3 or 4.')
     
     df = df.astype(col_dtypes)
+    df.loc[:, 'wind_param'] = round(eval_MDP.direction_probability, 2)
     return df
 
 # Define metadata
-grid_sizes = range(4, 5)
-IDs = range(1, 3)
-wind_params = np.arange(0.95, 1.02, 0.05)
-no_rl_evaluations = 50                     # NEW (number of simulations to run per solution method per benchmark MDP)
-no_ip_evaluations = 5 # lower because it takes longer to simulate
+grid_sizes = range(4, 7)
+IDs = range(1, 5)
+wind_params = np.arange(0.80, 1.02, 0.05)
+no_rl_evaluations = 3000                     # NEW (number of simulations to run per solution method per benchmark MDP)
+no_ip_evaluations = 1 # lower because it takes longer to simulate
 
 # CHANGE DIMENSION HERE
 dimension = 3
@@ -84,7 +87,7 @@ if dimension != 3 and dimension != 4:
 
 # Initialise dataframe for storage of each dimension's results
 no_records = len(grid_sizes) * len(IDs) * len(wind_params) * (2 * no_rl_evaluations + no_ip_evaluations)
-complete_df = pd.DataFrame(columns=['dimension', 'MDP_ID', 'sol_method', 'l1_norm', 'no_solutions', 'solver_time'], index=range(no_records))
+complete_df = pd.DataFrame(columns=['dimension', 'MDP_ID', 'wind_param', 'sol_method', 'l1_norm', 'no_solutions', 'solver_time'], index=range(no_records))
 
 complete_df_index = 0
 # Iterate and evaluate
@@ -137,13 +140,22 @@ for grid_size in grid_sizes:
 
 
             all_df = pd.concat([ip_df, mc_df, dp_df], ignore_index=True)
-            all_df.index = all_df.index.map(lambda x: x + complete_df_index)
+            all_df.index = all_df.index.map(lambda x: x + complete_df_index) # shift indices to allow for the next line to work correctly
             complete_df.loc[complete_df_index:(complete_df_index + all_df.shape[0]) - 1] = all_df # NEED the -1 because these limits are INCLUSIVE, which is unusual
             complete_df_index += all_df.shape[0]
 
 # WRITE RESULTS TO FILE HERE
 # .......
 
+print('Results dataframe:')
 print(complete_df)
+print('Analysis metadata:')
+print(f'Dimension: {dimension}')
+print(f'Grid sizes: {list(grid_sizes)}')
+print(f'IDs: {list(IDs)}')
+print(f'Wind parameters: {list(wind_params)}')
+print(f'Number of RL evaluations: {no_rl_evaluations}')
+print(f'Number of IP evaluations: {no_ip_evaluations}')
 
-
+results_file_name = f'{dimension}d-grids-{min(list(grid_sizes))}-{max(list(grid_sizes))}-IDs-{min(list(IDs))}-{max(list(IDs))}-winds-{round(min(list(wind_params)), 2)}-{round(max(list(wind_params)), 2)}-noRL-{no_rl_evaluations}-noIP-{no_ip_evaluations}.csv'
+complete_df.to_csv(results_file_name, index=False)

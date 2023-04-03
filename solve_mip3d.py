@@ -15,6 +15,8 @@ def initialise_ampl():
     ampl = AMPL(Environment(path_to_ampl_exec))
     ampl.read(path_to_this_repo + "/ampl3d/new-mip-3d.mod")
     ampl.read_data(path_to_this_repo + "/ampl3d/mip-3d.dat")
+    ampl.setOption('solver', 'cplex')
+    ampl.setOption('cplex_options', 'outlev=0')
     return ampl
 
 def solve_mip(ampl):
@@ -28,13 +30,13 @@ def solve_mip(ampl):
 
     # specify the solver to use
     ampl.option["solver"] = "cplex"
+    ampl.setOption('cplex_options', 'outlev=0') # no output messages printed to console
 
     # solve the problem
     st = time.time()
     ampl.solve()
     et = time.time()
     solve_time = et - st
-    print(f'Done in {solve_time} seconds.')
 
 
     # stop here if the model was not solved
@@ -44,8 +46,8 @@ def solve_mip(ampl):
         return False, False
 
     # get landing error (cost function)
-    objective = ampl.get_objective('LandingError')
-    print(f'Objective function (landing error): {objective.value()}')
+    #objective = ampl.get_objective('LandingError')
+    #print(f'Objective function (landing error): {objective.value()}')
     return ampl, solve_time
 
 # ampl object is the input here

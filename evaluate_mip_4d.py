@@ -7,6 +7,7 @@ import dynamic_programming_4d as dp4
 import solve_mip4d as mip4
 import monte_carlo_4d as mc4
 import matplotlib
+from tqdm import tqdm
 
 # this will take an MDP problem, solve it via MIP, simulate time steps by sampling MDP dynamics, recompute MIP solutions as needed if the real outcomes
 # deviate from the expected ones at any point.
@@ -168,9 +169,12 @@ def evaluate_mip_df(eval_MDP, eval_MDP_ID, no_evaluations):
     df.loc[:, 'dimension'] = 4
     df.loc[:, 'sol_method'] = 'IP'
     df.loc[:, 'MDP_ID'] = eval_MDP_ID
-    df.loc[:, 'wind_param'] = eval_MDP.direction_probability
     
     evaluation_no = 0
+
+    # initialize the tqdm progress bar
+    pbar = tqdm(total=no_evaluations)
+
     while evaluation_no < no_evaluations:
         crashed = False
         # we need to generate a random initial state that isn't infeasible straight away,
@@ -190,6 +194,7 @@ def evaluate_mip_df(eval_MDP, eval_MDP_ID, no_evaluations):
                 df.loc[evaluation_no, 'no_solutions'] = sim_mip_solutions
                 df.loc[evaluation_no, 'solver_time'] = sim_compute_time
                 evaluation_no += 1
+                pbar.update(1)
                 crashed = True
                 break
         
@@ -209,8 +214,11 @@ def evaluate_mip_df(eval_MDP, eval_MDP_ID, no_evaluations):
         df.loc[evaluation_no, 'no_solutions'] = sim_mip_solutions
         df.loc[evaluation_no, 'solver_time'] = sim_compute_time
         evaluation_no += 1
+        pbar.update(1)
 
+    pbar.close()
     df = df.astype(col_dtypes)
+    df.loc[:, 'wind_param'] = round(eval_MDP.direction_probability, 2)
     return df
 
 if __name__ == "__main__":
