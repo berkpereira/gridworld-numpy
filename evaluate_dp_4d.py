@@ -366,7 +366,7 @@ if __name__ == "__main__":
         save_wind_results(evaluations, crashes, bp4.wind_no_evaluations, bp4.wind_eval_params, bp4.wind_train_params, this_dir=True)
     
     # READ 2D ARRAY RESULTS FROM PREVIOUS STEP (ABOUT CHOOSING WIND PARAMETER) AND PLOT THEM.
-    wind_plot = False
+    wind_plot = True
     if wind_plot:
         evaluations_file = 'results/4d/training_wind/wind_evaluations_array.txt'
         crashes_file = 'results/4d/training_wind/wind_crashes_array.txt'

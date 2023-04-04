@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib import cm
 
+text_width = 6.30045
+fig_height = 3
+
 # TRAINING MULTIPLE MONTE CARLO POLICIES WITH VARYING EPSILON
 def epsilon_train_policies(MDP, epsilon_params, evaluation_no_episodes, no_improvement_steps):
     for epsilon in epsilon_params:
@@ -91,17 +94,17 @@ def save_epsilon_results(evaluations_array, crashes_array, no_evaluations, train
 def epsilon_plot_evaluations(evaluations_array_txt_file_name, train_epsilon_params, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=1)
 
-    plt.figure(figsize=(12,9))
+    plt.figure(figsize=(6.30045,9))
     plt.plot(train_epsilon_params, evaluations[:], 'r-*')
     
     #plt.ylim(np.amin(evaluations), 0)
-    plt.ylim(0, np.amax(evaluations))
+    #plt.ylim(0, np.amax(evaluations))
     plt.grid(True)
     plt.title('Performance of MC policies trained with different epsilon parameters')
     plt.tight_layout()
     
     if save:
-        plt.savefig('out_plot.pdf')
+        plt.savefig('3d_mc_epsilon_evaluations.pdf')
     
     #plt.show()
 
@@ -117,7 +120,7 @@ def epsilon_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, train_
     plt.tight_layout()
     
     if save:
-        plt.savefig('out_plot.pdf')
+        plt.savefig('3d_mc_epsilon_crash_rates.pdf')
     
     #plt.show()
 
@@ -228,7 +231,7 @@ def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ra
         indices_x, indices_y = np.meshgrid(indices_x, indices_y)
         Z = evaluations[indices_x, indices_y]
 
-        fig = plt.figure(figsize=(14,9))
+        fig = plt.figure(figsize=(text_width,3))
         ax = fig.add_subplot(111, projection='3d')
 
         # plot evaluations
@@ -273,7 +276,7 @@ def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ra
         plt.tight_layout()
     
     if save:
-        plt.savefig('out_plot.pdf')
+        plt.savefig('3d_mc_ratio_evaluations.pdf')
 
 def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no_episodes_ratio_params, no_steps_params, surface = True, save=False):
     crashes = np.loadtxt(crashes_array_txt_file_name, ndmin=1)
@@ -289,7 +292,7 @@ def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no
         indices_x, indices_y = np.meshgrid(indices_x, indices_y)
         Z = crash_rates[indices_x, indices_y]
 
-        fig = plt.figure(figsize=(14,9))
+        fig = plt.figure(figsize=(text_width, fig_height))
         ax = fig.add_subplot(111, projection='3d')
 
         # plot crash rates
@@ -321,7 +324,7 @@ def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no
         plt.tight_layout()
 
     if save:
-        plt.savefig('out_plot.pdf')
+        plt.savefig('3d_mc_ratio_crash_rates.pdf')
 
 if __name__ == "__main__":
     epsilon_train = False
@@ -339,12 +342,12 @@ if __name__ == "__main__":
         print(crashes)
         save_epsilon_results(evaluations, crashes, bp3.epsilon_no_evaluations, bp3.epsilon_train_params, bp3.epsilon_eval_wind, this_dir=True)
 
-    epsilon_plot = False
+    epsilon_plot = True
     if epsilon_plot:
         evaluations_file = 'results/3d/training_epsilon/epsilon_evaluations_array.txt'
         crashes_file = 'results/3d/training_epsilon/epsilon_crashes_array.txt'
-        epsilon_plot_evaluations(evaluations_file, bp3.epsilon_train_params, save = False)
-        epsilon_plot_crash_rates(crashes_file, bp3.epsilon_no_evaluations, bp3.epsilon_train_params, save = False)
+        epsilon_plot_evaluations(evaluations_file, bp3.epsilon_train_params, save = True)
+        epsilon_plot_crash_rates(crashes_file, bp3.epsilon_no_evaluations, bp3.epsilon_train_params, save = True)
         plt.show()
     
     ratio_steps_train = False

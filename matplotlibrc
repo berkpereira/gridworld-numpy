@@ -1,3 +1,7 @@
+# text width is 6.30045 inches
+
 font.family         : sans-serif
 font.sans-serif     : Helvetica
 font.size           : 9
+# figure.figsize      : 6.30045, auto
+savefig.bbox: tight

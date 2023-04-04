@@ -344,7 +344,7 @@ if __name__ == "__main__":
         print(crashes)
         save_epsilon_results(evaluations, crashes, bp4.epsilon_no_evaluations, bp4.epsilon_train_params, bp4.epsilon_eval_wind, this_dir=True)
 
-    epsilon_plot = False
+    epsilon_plot = True
     if epsilon_plot:
         evaluations_file = 'results/4d/training_epsilon/epsilon_evaluations_array.txt'
         crashes_file = 'results/4d/training_epsilon/epsilon_crashes_array.txt'

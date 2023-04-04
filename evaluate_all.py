@@ -164,18 +164,25 @@ def evaluate_all(dimension, grid_sizes, IDs, wind_params, no_rl_evaluations, no_
     complete_df.to_csv(results_file_name, index=False)
 
 
-
+"""
 grid_sizes_list = [range(4,5), range(5,6),
                    range(6,7), range(7,8),
                    range(8,9), range(9,10),
                    range(10,11), range(11,12),
                    range(12,13), range(13,14),]
+"""
+
+grid_sizes_list = [range(6,7), range(7,8),
+                   range(8,9), range(9,10),
+                   range(10,11), range(11,12),
+                   range(12,13), range(13,14),]
+
 IDs = range(1,5)
 wind_params = np.arange(0.80, 1.02, 0.05)
 no_rl_evaluations = 3000                     # NEW (number of simulations to run per solution method per benchmark MDP)
 no_ip_evaluations = 300 # lower because it takes longer to simulate
 
-dimension = 4
+dimension = 3
 
 
 os.system('say evaluation begun')
