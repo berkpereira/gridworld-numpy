@@ -9,6 +9,7 @@ import pandas as pd
 
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib import cm
+import fig_specs as fsp
 
 # TRAINING MULTIPLE MONTE CARLO POLICIES WITH VARYING EPSILON
 def epsilon_train_policies(MDP, epsilon_params, evaluation_no_episodes, no_improvement_steps):
@@ -92,7 +93,7 @@ def save_epsilon_results(evaluations_array, crashes_array, no_evaluations, train
 def epsilon_plot_evaluations(evaluations_array_txt_file_name, train_epsilon_params, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=1)
 
-    plt.figure(figsize=(12,9))
+    plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, fsp.fig_height))
     plt.plot(train_epsilon_params, evaluations[:], 'r-*')
     
     #plt.ylim(np.amin(evaluations), 0)
@@ -102,7 +103,7 @@ def epsilon_plot_evaluations(evaluations_array_txt_file_name, train_epsilon_para
     plt.tight_layout()
     
     if save:
-        plt.savefig('out_plot.pdf')
+        plt.savefig(f'{fsp.fig_path}/4d_mc_epsilon_evaluations.pdf')
     
     #plt.show()
 
@@ -110,7 +111,7 @@ def epsilon_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, train_
     crashes = np.loadtxt(crashes_array_txt_file_name, ndmin=1)
     crash_rates = crashes / no_evaluations
 
-    plt.figure(figsize=(12,9))
+    plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, fsp.fig_height))
     plt.plot(train_epsilon_params, crash_rates[:], 'b-*')
     
     plt.grid(True)
@@ -118,7 +119,7 @@ def epsilon_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, train_
     plt.tight_layout()
     
     if save:
-        plt.savefig('out_plot.pdf')
+        plt.savefig(f'{fsp.fig_path}/4d_mc_epsilon_crash_rates.pdf')
     
     #plt.show()
 
@@ -229,7 +230,7 @@ def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ra
         indices_x, indices_y = np.meshgrid(indices_x, indices_y)
         Z = evaluations[indices_x, indices_y]
 
-        fig = plt.figure(figsize=(14,9))
+        fig = plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, fsp.fig_height))
         ax = fig.add_subplot(111, projection='3d')
 
         # plot evaluations
@@ -260,7 +261,7 @@ def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ra
         no_no_episodes_ratio_params = len(no_episodes_ratio_params)
         no_mosaic_rows = 3
 
-        plt.figure(figsize=(12,9))
+        plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, fsp.fig_height))
 
         for j in range(no_no_episodes_ratio_params):
             plt.subplot(no_mosaic_rows, int(np.ceil(no_no_episodes_ratio_params / no_mosaic_rows)), j+1)
@@ -275,7 +276,7 @@ def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ra
     
     
     if save:
-        plt.savefig('out_plot.pdf')
+        plt.savefig(f'{fsp.fig_path}/4d_mc_ratio_evaluations.pdf')
 
 def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no_episodes_ratio_params, no_steps_params, surface = True, save=False):
     crashes = np.loadtxt(crashes_array_txt_file_name, ndmin=1)
@@ -291,7 +292,7 @@ def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no
         indices_x, indices_y = np.meshgrid(indices_x, indices_y)
         Z = crash_rates[indices_x, indices_y]
 
-        fig = plt.figure(figsize=(14,9))
+        fig = plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, fsp.fig_height))
         ax = fig.add_subplot(111, projection='3d')
 
         # plot crash rates
@@ -309,7 +310,7 @@ def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no
         no_no_episodes_ratio_params = len(no_episodes_ratio_params)
         no_mosaic_rows = 3
 
-        plt.figure(figsize=(12,9))
+        plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, fsp.fig_height))
 
         for j in range(no_no_episodes_ratio_params):
             plt.subplot(no_mosaic_rows, int(np.ceil(no_no_episodes_ratio_params / no_mosaic_rows)), j+1)
@@ -323,7 +324,7 @@ def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no
         plt.tight_layout()
     
     if save:
-        plt.savefig('out_plot.pdf')
+        plt.savefig(f'{fsp.fig_path}/4d_mc_ratio_crash_rates.pdf')
 
 
 

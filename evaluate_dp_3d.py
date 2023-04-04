@@ -5,6 +5,7 @@ import benchmark_problems_3d as bp3
 import os
 import matplotlib.pyplot as plt
 import matplotlib
+import fig_specs as fsp
 
 # TRAINING WITH DIFFERENT WIND PARAMETERS AND SAVING POLICIES TO FILES
 # NOTE, wind parameter of evaluation_MDP input does not matter. this will be set using values no_wind_parameters input argument values between 0 and 1.
@@ -80,19 +81,25 @@ def wind_plot_evaluations(evaluations_array_txt_file_name, eval_wind_params, tra
     
     if not surface:
         no_eval_wind_params = len(eval_wind_params)
-        no_mosaic_rows = 3
+        no_mosaic_rows = 2
 
-        plt.figure(figsize=(12,9))
+        plt.figure(figsize=(fsp.text_width, fsp.fig_height))
+        #plt.figure()
 
-        for j in range(no_eval_wind_params):
-            plt.subplot(no_mosaic_rows, int(np.ceil(no_eval_wind_params / no_mosaic_rows)), j+1)
+        #for j in range(no_eval_wind_params):
+        for j in range(16,20):
+            j_sub = j - 16
+            #plt.subplot(no_mosaic_rows, int(np.ceil(no_eval_wind_params / no_mosaic_rows)), j_sub+1)
+            plt.subplot(no_mosaic_rows, int(np.ceil(4 / no_mosaic_rows)), j_sub+1)
             plt.plot(train_wind_params, evaluations[:,j], 'r-*')
             
             
             #plt.ylim(np.amin(evaluations), 0)
-            plt.ylim(0, np.amax(evaluations))
+            plt.ylim(0, 1.1 * np.amax(evaluations[:,16:21]))
             plt.grid(True)
-            plt.title('Evaluation wind: ' + str(round(eval_wind_params[j],2)))
+            plt.title('Evaluation wind parameter: ' + str(round(eval_wind_params[j],2)))
+            plt.xlabel('Policy training wind parameter')
+            plt.ylabel('Average error')
         plt.tight_layout()
 
     else:
@@ -105,7 +112,7 @@ def wind_plot_evaluations(evaluations_array_txt_file_name, eval_wind_params, tra
         indices_x, indices_y = np.meshgrid(indices_x, indices_y)
         Z = evaluations [indices_x, indices_y]
 
-        fig = plt.figure(figsize=(14,9))
+        fig = plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, fsp.fig_height))
         ax = fig.add_subplot(111, projection='3d')
 
         # plot evaluations
@@ -118,7 +125,7 @@ def wind_plot_evaluations(evaluations_array_txt_file_name, eval_wind_params, tra
         plt.title('Performance of policies trained and evaluated with differing wind parameters')
     
     if save:
-        plt.savefig('out_plot.pdf')
+        plt.savefig(f'{fsp.fig_path}/3d_dp_wind_evaluations.pdf')
 
 def wind_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, eval_wind_params, train_wind_params, surface = True, save=False):
     crashes = np.loadtxt(crashes_array_txt_file_name, ndmin=2)
@@ -126,17 +133,21 @@ def wind_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, eval_wind
     
     if not surface:
         no_eval_wind_params = len(eval_wind_params)
-        no_mosaic_rows = 3
+        no_mosaic_rows = 2
 
-        plt.figure(figsize=(12,9))
+        plt.figure(figsize=(fsp.text_width, fsp.fig_height))
 
-        for j in range(no_eval_wind_params):
-            plt.subplot(no_mosaic_rows, int(np.ceil(no_eval_wind_params / no_mosaic_rows)), j+1)
+        #for j in range(no_eval_wind_params):
+        for j in range(16, 20):
+            j_sub = j - 16
+            plt.subplot(no_mosaic_rows, int(np.ceil(4 / no_mosaic_rows)), j_sub+1)
             plt.plot(train_wind_params, crash_rates[:,j], 'b-*')
             
-            plt.ylim(0, np.amax(crash_rates))
+            plt.ylim(0, 1.1 * np.amax(crash_rates[:,16:21]))
             plt.grid(True)
-            plt.title('Evaluation wind: ' + str(round(eval_wind_params[j],2)))
+            plt.title('Evaluation wind parameter: ' + str(round(eval_wind_params[j],2)))
+            plt.xlabel('Policy training wind parameter')
+            plt.ylabel('Crash rate')
         plt.tight_layout()
 
     else:
@@ -149,7 +160,7 @@ def wind_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, eval_wind
         indices_x, indices_y = np.meshgrid(indices_x, indices_y)
         Z = crash_rates[indices_x, indices_y]
 
-        fig = plt.figure(figsize=(14,9))
+        fig = plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, fsp.fig_height))
         ax = fig.add_subplot(111, projection='3d')
 
         # plot evaluations
@@ -162,7 +173,7 @@ def wind_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, eval_wind
         plt.title('Crash rates of policies trained and evaluated with differing wind parameters')
     
     if save:
-        plt.savefig('out_plot.pdf')
+        plt.savefig(f'{fsp.fig_path}/3d_dp_wind_crash_rates.pdf')
 
 # TO SAVE INFO ABOUT RESULTS FILE
 def save_wind_results(evaluations_array, crashes_array, no_evaluations, eval_wind_params, train_wind_params, this_dir=True):
@@ -257,6 +268,6 @@ if __name__ == "__main__":
     if wind_plot:
         evaluations_file = 'results/3d/training_wind/wind_evaluations_array.txt'
         crashes_file = 'results/3d/training_wind/wind_crashes_array.txt'
-        wind_plot_evaluations(evaluations_file, bp3.wind_eval_params, bp3.wind_train_params, surface = False, save = False)
-        wind_plot_crash_rates(crashes_file, bp3.wind_no_evaluations, bp3.wind_eval_params, bp3.wind_train_params, surface = False, save = False)
+        wind_plot_evaluations(evaluations_file, bp3.wind_eval_params, bp3.wind_train_params, surface = False, save = True)
+        wind_plot_crash_rates(crashes_file, bp3.wind_no_evaluations, bp3.wind_eval_params, bp3.wind_train_params, surface = False, save = True)
         plt.show()

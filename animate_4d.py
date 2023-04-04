@@ -10,22 +10,6 @@ import pickle
 
 
 if __name__ == "__main__":
-    import os
-
-    dir_path = 'benchmark-problems/4d/'
-    files = sorted(os.listdir(dir_path))
-
-    # Create an empty list to store the objects
-    objects = []
-
-    # Iterate over the files in alphabetical order
-    for filename in files:
-        # Open the file in binary mode
-        with open(os.path.join(dir_path, filename), "rb") as file:
-            # Deserialize the object from the file and append it to the list
-            obj = pickle.load(file)
-            objects.append(obj)
-
-    for MDP in objects:
-        history = mc4.generate_episode(MDP, dp4.random_walk)
-        mc4.play_episode(MDP, dp4.random_walk, history)
+    MDP = dp4.MarkovGridWorld(grid_size = 5, obstacles=np.array([[2,3], [1,1]]), landing_zone=np.array([3,2]), max_altitude=8)
+    history = mc4.generate_episode(MDP, dp4.random_walk)
+    mc4.play_episode(MDP, dp4.random_walk, history, save = True)
