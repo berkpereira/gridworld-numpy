@@ -172,27 +172,32 @@ grid_sizes_list = [range(4,5), range(5,6),
                    range(12,13), range(13,14),]
 """
 
-grid_sizes_list = [range(6,7), range(7,8),
-                   range(8,9), range(9,10),
-                   range(10,11), range(11,12),
-                   range(12,13), range(13,14),]
 
 IDs = range(1,5)
 wind_params = np.arange(0.80, 1.02, 0.05)
 no_rl_evaluations = 3000                     # NEW (number of simulations to run per solution method per benchmark MDP)
 no_ip_evaluations = 300 # lower because it takes longer to simulate
 
-dimension = 3
-
 
 os.system('say evaluation begun')
-st = time.time()
+
+
+
+dimension = 4
+grid_sizes_list = [range(12, 13), range(13, 14)]
+
 for grid_size_range in grid_sizes_list:
     # evaluate and write files, one file per grid size.
     evaluate_all(dimension=dimension, grid_sizes=grid_size_range, IDs=IDs, wind_params=wind_params, no_rl_evaluations=no_rl_evaluations, no_ip_evaluations=no_ip_evaluations)
-et = time.time()
 
 
-os.system('say evaluation finished')
-os.system(f'say evaluation took {et - st} seconds')
-print(f'Time for this analysis: {et - st} seconds')
+# another case
+dimension = 3
+grid_sizes_list = [range(9,10),
+                   range(10,11), range(11,12),
+                   range(12,13), range(13,14),]
+
+for grid_size_range in grid_sizes_list:
+    # evaluate and write files, one file per grid size.
+    evaluate_all(dimension=dimension, grid_sizes=grid_size_range, IDs=IDs, wind_params=wind_params, no_rl_evaluations=no_rl_evaluations, no_ip_evaluations=no_ip_evaluations)
+
