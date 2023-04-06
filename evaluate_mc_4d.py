@@ -93,17 +93,20 @@ def save_epsilon_results(evaluations_array, crashes_array, no_evaluations, train
 def epsilon_plot_evaluations(evaluations_array_txt_file_name, train_epsilon_params, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=1)
 
-    plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, fsp.fig_height))
-    plt.plot(train_epsilon_params, evaluations[:], 'r-*')
+    plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, 3.1))
+    plt.plot(train_epsilon_params, evaluations[:], '-*')
     
-    #plt.ylim(np.amin(evaluations), 0)
-    #plt.ylim(0, np.amax(evaluations))
+    plt.ylim(1.5, 1.05 * np.amax(evaluations))
     plt.grid(True)
-    plt.title('Performance of MC policies trained with different epsilon parameters')
+    #plt.title('Performance of MC policies trained with different epsilon parameters')
+    plt.yticks([1.5, 2, 2.5, 3])
+    plt.xlabel('Policy training ε parameter')
+    plt.ylabel('Average landing error')
+
     plt.tight_layout()
     
     if save:
-        plt.savefig(f'{fsp.fig_path}/4d_mc_epsilon_evaluations.pdf')
+        plt.savefig(f'{fsp.fig_path}/4d-mc-epsilon-evaluations.pdf')
     
     #plt.show()
 
@@ -349,7 +352,7 @@ if __name__ == "__main__":
     if epsilon_plot:
         evaluations_file = 'results/4d/training_epsilon/epsilon_evaluations_array.txt'
         crashes_file = 'results/4d/training_epsilon/epsilon_crashes_array.txt'
-        epsilon_plot_evaluations(evaluations_file, bp4.epsilon_train_params, save = False)
+        epsilon_plot_evaluations(evaluations_file, bp4.epsilon_train_params, save = True)
         epsilon_plot_crash_rates(crashes_file, bp4.epsilon_no_evaluations, bp4.epsilon_train_params, save = False)
         plt.show()
     
@@ -369,7 +372,7 @@ if __name__ == "__main__":
         print(crashes)
         save_ratio_steps_results(evaluations, crashes, bp4.ratio_episodes_steps_no_evaluations, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, bp4.epsilon_MDP.state_space.shape[0], this_dir = True)
 
-    ratio_steps_plot = True
+    ratio_steps_plot = False
     if ratio_steps_plot:
         evaluations_file = 'results/4d/training_ratio_steps/ratio_steps_evaluations_array.txt'
         crashes_file = 'results/4d/training_ratio_steps/ratio_steps_crashes_array.txt'

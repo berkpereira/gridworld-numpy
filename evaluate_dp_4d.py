@@ -80,17 +80,17 @@ def wind_evaluate_policies(evaluation_MDP, no_evaluations, eval_wind_params, tra
 def wind_plot_evaluations(evaluations_array_txt_file_name, eval_wind_params, train_wind_params, surface=True, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=2)
     if not surface:
-        plt.figure(figsize=(fsp.text_width, 2.5))
+        plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, 3.1))
 
         for j in range(16, 20):
-            plt.plot(train_wind_params, evaluations[:,j],  '-*', label='Evaluation wind parameter: ' + str(round(eval_wind_params[j],2)))
+            plt.plot(train_wind_params, evaluations[:,j],  '-*', label=f'Evaluation w = {eval_wind_params[j]:.2f}')
 
         plt.ylim(0, 3)
         plt.grid(True)
         plt.xlabel('Policy training wind parameter')
         plt.ylabel('Average landing error')
         plt.yticks(np.arange(0, 3.1, 1))
-        plt.legend(ncol=2)
+        plt.legend(ncol=1)
         plt.tight_layout()
         
     else:
@@ -373,7 +373,7 @@ if __name__ == "__main__":
     if wind_plot:
         evaluations_file = 'results/4d/training_wind/wind_evaluations_array.txt'
         crashes_file = 'results/4d/training_wind/wind_crashes_array.txt'
-        wind_plot_evaluations(evaluations_file, bp4.wind_eval_params, bp4.wind_train_params, surface=False, save = False)
+        wind_plot_evaluations(evaluations_file, bp4.wind_eval_params, bp4.wind_train_params, surface=False, save = True)
         wind_plot_crash_rates(crashes_file, bp4.wind_no_evaluations, bp4.wind_eval_params, bp4.wind_train_params, surface = False, save = False)
         plt.show()
 
