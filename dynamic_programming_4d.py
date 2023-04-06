@@ -1064,8 +1064,10 @@ def run_profiler(function):
 
 if __name__ == "__main__":
     import monte_carlo_4d as mc4
-    with open("benchmark-problems/4d/42_wind_0,9.p", 'rb') as f:
-            train_MDP = pickle.load(f) # load MDP for training (with correct wind parameter as decided to be used during training)
+    #with open("benchmark-problems/4d/42_wind_0,9.p", 'rb') as f:
+            #train_MDP = pickle.load(f) # load MDP for training (with correct wind parameter as decided to be used during training)
+
+    train_MDP = MarkovGridWorld(grid_size=10, obstacles = np.array([[0,0], [4,2], [7, 2]]), direction_probability=1.0, landing_zone=np.array([3,3]), max_altitude=12)
 
     optimal_policy, optimal_policy_array, training_time = value_iteration(random_walk, train_MDP, np.inf, train_time=True)
     print(training_time)

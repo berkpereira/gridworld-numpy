@@ -80,24 +80,17 @@ def wind_evaluate_policies(evaluation_MDP, no_evaluations, eval_wind_params, tra
 def wind_plot_evaluations(evaluations_array_txt_file_name, eval_wind_params, train_wind_params, surface=True, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=2)
     if not surface:
-        no_eval_wind_params = len(eval_wind_params)
-        no_mosaic_rows = 2
+        plt.figure(figsize=(fsp.text_width, 2.5))
 
-        plt.figure(figsize=(fsp.text_width, fsp.fig_height))
-
-        #for j in range(no_eval_wind_params):
         for j in range(16, 20):
-            j_sub = j - 16
-            plt.subplot(no_mosaic_rows, int(np.ceil(4 / no_mosaic_rows)), j_sub+1)
-            plt.plot(train_wind_params, evaluations[:,j], 'r-*')
-            
-            
-            #plt.ylim(np.amin(evaluations), 0)
-            plt.ylim(0, 1.1 * np.amax(evaluations[:, 16:21]))
-            plt.grid(True)
-            plt.title('Evaluation wind parameter: ' + str(round(eval_wind_params[j],2)))
-            plt.xlabel('Policy training wind parameter')
-            plt.ylabel('Average error')
+            plt.plot(train_wind_params, evaluations[:,j],  '-*', label='Evaluation wind parameter: ' + str(round(eval_wind_params[j],2)))
+
+        plt.ylim(0, 3)
+        plt.grid(True)
+        plt.xlabel('Policy training wind parameter')
+        plt.ylabel('Average landing error')
+        plt.yticks(np.arange(0, 3.1, 1))
+        plt.legend(ncol=2)
         plt.tight_layout()
         
     else:
