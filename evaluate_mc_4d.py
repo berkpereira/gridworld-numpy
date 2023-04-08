@@ -412,6 +412,6 @@ if __name__ == "__main__":
     if ratio_steps_plot:
         evaluations_file = 'results/4d/training_ratio_steps/ratio_steps_evaluations_array.txt'
         crashes_file = 'results/4d/training_ratio_steps/ratio_steps_crashes_array.txt'
-        ratio_steps_plot_evaluations(evaluations_file, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, surface = 'contour', save = True)
+        ratio_steps_plot_evaluations(evaluations_file, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, surface = 'contour', save = False)
         ratio_steps_plot_crash_rates(crashes_file, bp4.epsilon_no_evaluations, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, surface = False, save = False)
         plt.show()

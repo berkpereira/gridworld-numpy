@@ -179,15 +179,23 @@ def actions_from_mip_variables(velocities, max_altitude):
 
 if __name__ == "__main__":
     ampl = initialise_ampl()
-    #MDP = MarkovGridWorld(grid_size=20, obstacles=np.array([[4,4], [5,6], [13,4], [3,16], [12,12], [16,6]]), landing_zone = np.array([6,6]), max_altitude=20)
-    test_MDP = MarkovGridWorld(grid_size=10, direction_probability=1, obstacles=np.array([[0,0]]), landing_zone=np.array([2,2]), max_altitude=10)
-    initial_state = [1,1]
 
-    # mip_history_from_mdp is the crucial function here 
-    history, actions, solve_time = mip_history_and_actions_from_mdp(test_MDP, initial_state, 0, ampl)
+    grid_size = 13
+    ID = 2
+    wind = 1.0
+
+    MDP_file = f'benchmark-problems/4d/{grid_size}{ID}_wind_{str(round(wind, 2)).replace(".", ",")}.p'
+    with open(MDP_file, 'rb') as f:
+        MDP = pickle.load(f)
+    
+    print(f'Obstacles:{MDP.obstacles}')
+    print(f'Landing zone: {MDP.landing_zone}')
+    initial_state = [10,3]
+    initial_velocity = 0
+    history, actions, solve_time = mip_history_and_actions_from_mdp(MDP, initial_state, initial_velocity, ampl)
     print(history)
     print()
     print(actions)
     print()
     print(f'Solve time: {solve_time} seconds')
-    play_episode(test_MDP, None, history)
+    #play_episode(test_MDP, None, history)
