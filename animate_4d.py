@@ -10,6 +10,16 @@ import pickle
 
 
 if __name__ == "__main__":
-    MDP = dp4.MarkovGridWorld(grid_size = 5, obstacles=np.array([[2,3], [1,1]]), landing_zone=np.array([3,2]), max_altitude=8)
-    history = mc4.generate_episode(MDP, dp4.random_walk)
-    mc4.play_episode(MDP, dp4.random_walk, history, save = True)
+    grid_size = 10
+    ID = 2
+    wind = 0.8
+    method = 'dp'
+
+    MDP_file = f'benchmark-problems/4d/{grid_size}{ID}_wind_{str(round(wind, 2)).replace(".", ",")}.p' 
+    with open(MDP_file, 'rb') as f:
+        MDP = pickle.load(f)
+    
+    policy_file = f'benchmark-policies/4d/{method}/{grid_size}{ID}_wind_0,9_policy_array.npy'
+    policy = dp4.array_to_policy(np.load(policy_file), MDP)
+    history = mc4.generate_episode(MDP, policy)
+    mc4.play_episode(MDP, policy, history, save = False)

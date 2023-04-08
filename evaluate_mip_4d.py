@@ -223,20 +223,7 @@ def evaluate_mip_df(eval_MDP, eval_MDP_ID, no_evaluations):
 
 if __name__ == "__main__":
     os.system('clear')
-    MDP = dp4.MarkovGridWorld(grid_size=10, direction_probability=1, obstacles=np.array([[0,0], [2,2]]), landing_zone = np.array([1,1]), max_altitude = 20)
-    no_evaluations = 20
-
-    df_s = time.time()
-    evaluations_df = evaluate_mip_df(MDP, 200, no_evaluations)
-    df_e = time.time()
+    MDP = dp4.MarkovGridWorld(grid_size=12, direction_probability=0.8, obstacles=np.array([[0,0]]), landing_zone = np.array([1,1]), max_altitude = 20)
     
-    """
-    n_s = time.time()
-    evaluate_mip(MDP, no_evaluations)
-    n_e = time.time()
-    print(f'Time for aggregate evaluation: {n_e - n_s} seconds')
-    """
-    
-    print(f'Time for df: {df_e - df_s} seconds')
-
-    print(evaluations_df)
+    history, sols, time = mip_simulate_closed_loop(MDP, [6,6], 0)
+    mc4.play_episode(MDP, None, history)

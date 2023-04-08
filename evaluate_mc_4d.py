@@ -223,7 +223,8 @@ def save_ratio_steps_results(evaluations_array, crashes_array, no_evaluations, n
 def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ratio_params, no_steps_params, surface = True, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=2)
 
-    if surface:
+    if surface == True:
+
         plot_x = no_episodes_ratio_params
         plot_y = no_steps_params
         X, Y = np.meshgrid(plot_x, plot_y)
@@ -259,8 +260,43 @@ def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ra
         plt.grid(True)
         plt.title('Cost function of Monte Carlo policies with varying number of episodes and improvement steps')
         plt.tight_layout()
+
+    elif surface == 'contour':
+        # using contour plot instead
+        plot_x = no_episodes_ratio_params
+        plot_y = no_steps_params
+        X, Y = np.meshgrid(plot_x, plot_y)
+
+        indices_x = np.arange(len(plot_x))
+        indices_y = np.arange(len(plot_y))
+        indices_x, indices_y = np.meshgrid(indices_x, indices_y)
+        Z = evaluations[indices_x, indices_y]
+
+        fig, ax = plt.subplots(figsize=(fsp.text_width , 2))
+
+        # plot evaluations
+        cs = ax.contourf(Y, X, Z, levels=10, cmap='plasma')
+
+        # plot contours of constant training time
+        cont_X = np.linspace(np.amin(no_episodes_ratio_params), np.amax(no_episodes_ratio_params), 30)
+        cont_Y = np.linspace(np.amin(no_steps_params), np.amax(no_steps_params), 30)
+        cont_X, cont_Y = np.meshgrid(cont_X, cont_Y)
+        cont_Z = np.multiply(cont_Y, cont_X) # scalar function to view contour lines of.
+        ax.contour(cont_Y, cont_X, cont_Z, levels = len(no_episodes_ratio_params), linewidths=1, colors='#88ff00') # plot contours of constant training time
+
+        ax.set_ylabel('Ratio of number of\nepisodes per evaluation\nto state space size')
+        ax.set_xlabel('Number of policy improvement steps')
+
+        # add colorbar
+        cbar = plt.colorbar(cs)
+        cbar.ax.set_ylabel('Average landing error')
+
+        plt.grid(False)
+        #plt.title('Cost function of Monte Carlo policies with varying number of episodes and improvement steps')
+        plt.tight_layout()
+
     
-    else:
+    elif surface is False:
         no_no_episodes_ratio_params = len(no_episodes_ratio_params)
         no_mosaic_rows = 3
 
@@ -279,7 +315,7 @@ def ratio_steps_plot_evaluations(evaluations_array_txt_file_name, no_episodes_ra
     
     
     if save:
-        plt.savefig(f'{fsp.fig_path}/4d_mc_ratio_evaluations.pdf')
+        plt.savefig(f'{fsp.fig_path}/4d-mc-ratio-evaluations.pdf')
 
 def ratio_steps_plot_crash_rates(crashes_array_txt_file_name, no_evaluations, no_episodes_ratio_params, no_steps_params, surface = True, save=False):
     crashes = np.loadtxt(crashes_array_txt_file_name, ndmin=1)
@@ -348,11 +384,11 @@ if __name__ == "__main__":
         print(crashes)
         save_epsilon_results(evaluations, crashes, bp4.epsilon_no_evaluations, bp4.epsilon_train_params, bp4.epsilon_eval_wind, this_dir=True)
 
-    epsilon_plot = True
+    epsilon_plot = False
     if epsilon_plot:
         evaluations_file = 'results/4d/training_epsilon/epsilon_evaluations_array.txt'
         crashes_file = 'results/4d/training_epsilon/epsilon_crashes_array.txt'
-        epsilon_plot_evaluations(evaluations_file, bp4.epsilon_train_params, save = True)
+        epsilon_plot_evaluations(evaluations_file, bp4.epsilon_train_params, save = False)
         epsilon_plot_crash_rates(crashes_file, bp4.epsilon_no_evaluations, bp4.epsilon_train_params, save = False)
         plt.show()
     
@@ -372,10 +408,10 @@ if __name__ == "__main__":
         print(crashes)
         save_ratio_steps_results(evaluations, crashes, bp4.ratio_episodes_steps_no_evaluations, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, bp4.epsilon_MDP.state_space.shape[0], this_dir = True)
 
-    ratio_steps_plot = False
+    ratio_steps_plot = True
     if ratio_steps_plot:
         evaluations_file = 'results/4d/training_ratio_steps/ratio_steps_evaluations_array.txt'
         crashes_file = 'results/4d/training_ratio_steps/ratio_steps_crashes_array.txt'
-        ratio_steps_plot_evaluations(evaluations_file, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, surface = False, save = False)
+        ratio_steps_plot_evaluations(evaluations_file, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, surface = 'contour', save = True)
         ratio_steps_plot_crash_rates(crashes_file, bp4.epsilon_no_evaluations, bp4.ratio_episodes_steps_ratio_params, bp4.ratio_episodes_steps_no_steps_params, surface = False, save = False)
         plt.show()
