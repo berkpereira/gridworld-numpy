@@ -15,12 +15,19 @@ set OBSTACLE_INDEX := 0..(no_obstacles-1);
 
 # define variables
 var Velocity {TIME, VELOCITY_INDEX} binary;
-var SlackPosLand {POSITION_INDEX} integer >= 0;
-var SlackNegLand {POSITION_INDEX} integer <= 0;
+#var SlackPosLand {POSITION_INDEX} integer >= 0;
+var SlackPosLand {POSITION_INDEX} >= 0;
+#var SlackNegLand {POSITION_INDEX} integer <= 0;
+var SlackNegLand {POSITION_INDEX} <= 0;
 
 # as per Richards2002 paper:
 #var ObstacleRelax {TIME, OBSTACLE_INDEX, VELOCITY_INDEX, POSITION_INDEX} binary;
 var ObstacleRelax {TIME, OBSTACLE_INDEX, VELOCITY_INDEX} binary;
+
+
+
+
+
 
 # cannot relax more than 3 directions. As per Richards2002 paper:
 subj to ObstacleRelaxLimit {k in TIME, i in OBSTACLE_INDEX} : (sum {v in VELOCITY_INDEX} (ObstacleRelax[k,i,v])) <= 3;
