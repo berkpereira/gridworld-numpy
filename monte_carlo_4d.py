@@ -80,7 +80,7 @@ def sample_policy(MDP, policy, state):
     sampled_action = rng.choice(len(MDP.action_space), p=stochastics)
     return sampled_action
 
-def play_episode(MDP, policy, history, policy_name=None, save = False, file_name = None):
+def play_episode(MDP, policy, history, policy_name=None, save = False, two_d = False, file_name = None):
     
     if not save:
         fig = plt.figure(figsize=(12,9))
@@ -89,12 +89,20 @@ def play_episode(MDP, policy, history, policy_name=None, save = False, file_name
         ax.grid()
         marker_size = 3000 / MDP.grid_size
     else: # for saving plots
-        fig_width = fsp.text_width * fsp.text_width_factor
-        fig = plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, 1.8))
-        ax = fig.add_subplot(projection="3d")
-        ax.set_aspect('equal')
-        ax.grid()
-        marker_size = 1000 / (MDP.grid_size * fig_width * 2)
+        if not two_d:
+            fig_width = fsp.text_width * fsp.text_width_factor
+            fig = plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, 1.8))
+            ax = fig.add_subplot(projection="3d")
+            ax.set_aspect('equal')
+            ax.grid()
+            marker_size = 1000 / (MDP.grid_size * fig_width * 2)
+        else:
+            fig_width = fsp.text_width * fsp.text_width_factor
+            fig = plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, 1.8))
+            ax = fig.add_subplot()
+            ax.set_aspect('equal')
+            ax.grid()
+            marker_size = 1000 / (MDP.grid_size * fig_width)
 
     # create aeroplane-shaped marker
     taper_offset = 0.3
@@ -162,60 +170,109 @@ def play_episode(MDP, policy, history, policy_name=None, save = False, file_name
         ani = animation.FuncAnimation(plt.gcf(), animate, frames=range(history.shape[0]), interval=150, repeat=False)
         plt.show()
     else: # want to save figure
-        for i in range(history.shape[0]):
-            if i == 0:
-                ax.clear()
+        if not two_d:
+            for i in range(history.shape[0]):
+                if i == 0:
+                    ax.clear()
 
-                ax.axes.set_xlim3d(left=0, right=MDP.grid_size - 1)
-                ax.axes.set_ylim3d(bottom=0, top=MDP.grid_size - 1)
-                ax.axes.set_zlim3d(bottom=0, top=MDP.max_altitude)
-                ax.set_xlabel('x')
-                ax.set_ylabel('y')
-                ax.set_zlabel('z')
-                if MDP.grid_size <= 20:
-                    plt.xticks(np.arange(MDP.grid_size))
-                    plt.yticks(np.arange(MDP.grid_size))
-                else:
-                    plt.xticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
-                    plt.yticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
-                if MDP.max_altitude <= 12:
-                    ax.set_zticks(np.arange(MDP.max_altitude + 1))
-                else:
-                    ax.set_zticks(np.arange(0, MDP.max_altitude + 1, np.ceil(MDP.max_altitude/2)))
+                    ax.axes.set_xlim3d(left=0, right=MDP.grid_size - 1)
+                    ax.axes.set_ylim3d(bottom=0, top=MDP.grid_size - 1)
+                    ax.axes.set_zlim3d(bottom=0, top=MDP.max_altitude)
+                    ax.set_xlabel('x')
+                    ax.set_ylabel('y')
+                    ax.set_zlabel('z')
+                    if MDP.grid_size <= 20:
+                        plt.xticks(np.arange(MDP.grid_size))
+                        plt.yticks(np.arange(MDP.grid_size))
+                    else:
+                        plt.xticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
+                        plt.yticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
+                    if MDP.max_altitude <= 12:
+                        ax.set_zticks(np.arange(MDP.max_altitude + 1))
+                    else:
+                        ax.set_zticks(np.arange(0, MDP.max_altitude + 1, np.ceil(MDP.max_altitude/2)))
 
-                # plot obstacle as a sort of building up to MDP.max_altitude.
-                # need to make this proper, just a crappy demo as it stands.
-                if MDP.obstacles.size != 0:
-                    for obstacle in MDP.obstacles:
-                        no_points = 30
-                        x_obstacle = np.full((no_points, 1), obstacle[0])
-                        y_obstacle = np.full((no_points, 1), obstacle[1])
-                        z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
+                    # plot obstacle as a sort of building up to MDP.max_altitude.
+                    # need to make this proper, just a crappy demo as it stands.
+                    if MDP.obstacles.size != 0:
+                        for obstacle in MDP.obstacles:
+                            no_points = 30
+                            x_obstacle = np.full((no_points, 1), obstacle[0])
+                            y_obstacle = np.full((no_points, 1), obstacle[1])
+                            z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
 
-                        ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="h", c='black', s=marker_size, alpha=0.1)
+                            ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="h", c='black', s=marker_size, alpha=0.1)
+                    
+                    # also visualise landing zone
+                    ax.scatter(MDP.landing_zone[0], MDP.landing_zone[1], 0, marker='o', c='purple', s=marker_size)
+
+                continue_crashed = False
+                for obstacle in MDP.obstacles:
+                    if np.array_equal(history[i][2:4], obstacle):
+                        ax.plot(history[:,2],history[:,3],history[:,0], 'r-.') # trajectory
+                        ax.scatter(history[i][2], history[i][3], history[i][0], marker="x", c='red', s=marker_size, alpha=1),
+                        continue_crashed = True
+                    if continue_crashed:
+                        continue
                 
-                # also visualise landing zone
-                ax.scatter(MDP.landing_zone[0], MDP.landing_zone[1], 0, marker='o', c='purple', s=marker_size)
-
-            continue_crashed = False
-            for obstacle in MDP.obstacles:
-                if np.array_equal(history[i][2:4], obstacle):
-                    ax.plot(history[:,2],history[:,3],history[:,0], 'r-.') # trajectory
-                    ax.scatter(history[i][2], history[i][3], history[i][0], marker="x", c='red', s=marker_size, alpha=1),
-                    continue_crashed = True
-                if continue_crashed:
+                # landed, not obstacle because already checked.
+                if history[i][0] == 0:
+                    normalised_manhattan = cityblock(history[i][2:4], MDP.landing_zone) / ((MDP.grid_size - 1) * 2)
+                    ax.plot(history[:,2],history[:,3],history[:,0], '-.', color=plt.cm.winter(1 - normalised_manhattan)) # trajectory
+                    ax.scatter(history[i][2], history[i][3], 0, marker=aircraft_marker, color=plt.cm.winter(1 - normalised_manhattan), s=marker_size*1.5, alpha=1),
                     continue
-            
-            # landed, not obstacle because already checked.
-            if history[i][0] == 0:
-                normalised_manhattan = cityblock(history[i][2:4], MDP.landing_zone) / ((MDP.grid_size - 1) * 2)
-                ax.plot(history[:,2],history[:,3],history[:,0], '-.', color=plt.cm.winter(1 - normalised_manhattan)) # trajectory
-                ax.scatter(history[i][2], history[i][3], 0, marker=aircraft_marker, color=plt.cm.winter(1 - normalised_manhattan), s=marker_size*1.5, alpha=1),
-                continue
-            
-            ax.scatter(history[i][2], history[i][3], history[i][0], marker=aircraft_marker,  c='brown', s=marker_size*1.5, alpha=1),
+                
+                ax.scatter(history[i][2], history[i][3], history[i][0], marker=aircraft_marker,  c='brown', s=marker_size*1.5, alpha=1),
+            ax.view_init(elev=48, azim=-31)
+        else: # 2D version of the plot
+            for i in range(history.shape[0]):
+                if i == 0:
+                    ax.clear()
 
-        ax.view_init(elev=48, azim=-31)
+                    ax.axes.set_xlim(-0.5, MDP.grid_size - 1 + 0.5)
+                    ax.axes.set_ylim(-0.5, MDP.grid_size - 1 + 0.5)
+                    ax.set_xlabel('x')
+                    ax.set_ylabel('y')
+                    if MDP.grid_size <= 20:
+                        plt.xticks(np.arange(MDP.grid_size))
+                        plt.yticks(np.arange(MDP.grid_size))
+                    else:
+                        plt.xticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
+                        plt.yticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
+
+                    # plot obstacle as a sort of building up to MDP.max_altitude.
+                    if MDP.obstacles.size != 0:
+                        for obstacle in MDP.obstacles:
+                            x_obstacle = np.full((1, 1), obstacle[0])
+                            y_obstacle = np.full((1, 1), obstacle[1])
+
+                            ax.scatter(x_obstacle, y_obstacle, marker="h", c='black', s=marker_size, alpha=0.9)
+                    
+                    # also visualise landing zone
+                    ax.scatter(MDP.landing_zone[0], MDP.landing_zone[1], marker='o', c='purple', s=marker_size)
+
+                continue_crashed = False
+                for obstacle in MDP.obstacles:
+                    if np.array_equal(history[i][2:4], obstacle):
+                        ax.plot(history[:,2],history[:,3], 'r-.') # trajectory
+                        ax.scatter(history[i][2], history[i][3], marker="x", c='red', s=marker_size, alpha=1),
+                        continue_crashed = True
+                    if continue_crashed:
+                        continue
+                
+                # landed, not obstacle because already checked.
+                if history[i][0] == 0:
+                    normalised_manhattan = cityblock(history[i][2:4], MDP.landing_zone) / ((MDP.grid_size - 1) * 2)
+                    ax.plot(history[:,2],history[:,3], '-', color=plt.cm.winter(1 - normalised_manhattan)) # trajectory
+                    ax.scatter(history[i][2], history[i][3], marker=aircraft_marker, color=plt.cm.winter(1 - normalised_manhattan), s=marker_size*1.5, alpha=1),
+                    continue
+                
+                if i == 0:
+                    ax.scatter(history[i][2], history[i][3], marker=aircraft_marker,  c='magenta', s=marker_size*1.5, alpha=1),    
+                else:
+                    ax.scatter(history[i][2], history[i][3], marker=aircraft_marker,  c='brown', s=marker_size*1.5, alpha=1),
+            plt.grid(True)
+
         #plt.savefig(file_name, bbox_inches=Bbox([[0,0],[fig.get_size_inches()[0], fig.get_size_inches()[1]]]))
         plt.savefig(file_name)
         #plt.savefig(f'{fsp.fig_path}/4d_trajectory.pdf')
