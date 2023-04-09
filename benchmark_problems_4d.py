@@ -67,7 +67,3 @@ ratio_episodes_steps_no_evaluations = 3000
 PROPER BENCHMARK PROBLEMS FOR OUR FINAL RESULTS
 
 """
-
-MDP_dict = {'101':dp4.MarkovGridWorld()}
-
-print()

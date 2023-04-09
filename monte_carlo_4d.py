@@ -22,7 +22,7 @@ def forward_policy(action, state):
 
 # we will always begin episodes from max altitude, because we might as well and we thus cover
 # more state visits per episode (no episodes where agent just crashes straight into the ground).
-def generate_episode(MDP, policy):
+def generate_episode(MDP, policy, initial_state = None):
     no_state_dimensions = MDP.state_space.shape[1] # number of columns = dimensions in state space
 
     # from nature of the problem, the max number of observed states in an episode (up to reaching MDP.termina_state)
@@ -35,15 +35,18 @@ def generate_episode(MDP, policy):
     first_state_max_alt = np.where(MDP.state_space[:,0] == MDP.max_altitude)[0][0]
     
     # if we've accidentally picked an obstacle state to begin with, pick again until that's not the case.
-    picked_obstacle = True
-    while picked_obstacle is True:
-        current_state = MDP.state_space[np.random.choice(np.arange(first_state_max_alt, first_state_max_alt + 4 * MDP.grid_size**2))]
-        
-        picked_obstacle = False
-        for obstacle in MDP.obstacles:
-            if np.array_equal(current_state[2:], obstacle):
-                picked_obstacle = True
-                break
+    if initial_state is None:
+        picked_obstacle = True
+        while picked_obstacle is True:
+            current_state = MDP.state_space[np.random.choice(np.arange(first_state_max_alt, first_state_max_alt + 4 * MDP.grid_size**2))]
+            
+            picked_obstacle = False
+            for obstacle in MDP.obstacles:
+                if np.array_equal(current_state[2:], obstacle):
+                    picked_obstacle = True
+                    break
+    else: # allows for prescription of the initial state
+        current_state = initial_state
                 
     # initialise index which we will use to fill the rows of the history matrix
     time_level = 0
@@ -77,7 +80,7 @@ def sample_policy(MDP, policy, state):
     sampled_action = rng.choice(len(MDP.action_space), p=stochastics)
     return sampled_action
 
-def play_episode(MDP, policy, history, policy_name=None, save = False):
+def play_episode(MDP, policy, history, policy_name=None, save = False, file_name = None):
     
     if not save:
         fig = plt.figure(figsize=(12,9))
@@ -86,11 +89,12 @@ def play_episode(MDP, policy, history, policy_name=None, save = False):
         ax.grid()
         marker_size = 3000 / MDP.grid_size
     else: # for saving plots
-        fig = plt.figure(figsize=(fsp.text_width, fsp.fig_height * 1.4))
+        fig_width = fsp.text_width * fsp.text_width_factor
+        fig = plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, 1.8))
         ax = fig.add_subplot(projection="3d")
         ax.set_aspect('equal')
         ax.grid()
-        marker_size = 1000 / MDP.grid_size
+        marker_size = 1000 / (MDP.grid_size * fig_width * 2)
 
     # create aeroplane-shaped marker
     taper_offset = 0.3
@@ -174,10 +178,10 @@ def play_episode(MDP, policy, history, policy_name=None, save = False):
                 else:
                     plt.xticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
                     plt.yticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
-                if MDP.max_altitude <= 20:
+                if MDP.max_altitude <= 12:
                     ax.set_zticks(np.arange(MDP.max_altitude + 1))
                 else:
-                    ax.set_zticks(np.arange(0, MDP.max_altitude + 1, np.ceil(MDP.max_altitude/10)))
+                    ax.set_zticks(np.arange(0, MDP.max_altitude + 1, np.ceil(MDP.max_altitude/2)))
 
                 # plot obstacle as a sort of building up to MDP.max_altitude.
                 # need to make this proper, just a crappy demo as it stands.
@@ -188,7 +192,7 @@ def play_episode(MDP, policy, history, policy_name=None, save = False):
                         y_obstacle = np.full((no_points, 1), obstacle[1])
                         z_obstacle = np.linspace(0, MDP.max_altitude, no_points)
 
-                        ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="h", c='black', s=marker_size*2, alpha=0.1)
+                        ax.scatter(x_obstacle, y_obstacle, z_obstacle, marker="h", c='black', s=marker_size, alpha=0.1)
                 
                 # also visualise landing zone
                 ax.scatter(MDP.landing_zone[0], MDP.landing_zone[1], 0, marker='o', c='purple', s=marker_size)
@@ -211,7 +215,9 @@ def play_episode(MDP, policy, history, policy_name=None, save = False):
             
             ax.scatter(history[i][2], history[i][3], history[i][0], marker=aircraft_marker,  c='brown', s=marker_size*1.5, alpha=1),
 
-        plt.savefig(f'{fsp.fig_path}/4d_trajectory.pdf', bbox_inches=Bbox([[0,0],[fig.get_size_inches()[0], fig.get_size_inches()[1]]]))
+        ax.view_init(elev=48, azim=-31)
+        #plt.savefig(file_name, bbox_inches=Bbox([[0,0],[fig.get_size_inches()[0], fig.get_size_inches()[1]]]))
+        plt.savefig(file_name)
         #plt.savefig(f'{fsp.fig_path}/4d_trajectory.pdf')
         plt.show()
 
