@@ -1,0 +1,26 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Gabriel Pereira Bristol RP3
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Gabriel Berk
+    family-names: Pereira
+    email: gabriel.pereira.2020@bristol.ac.uk
+    affiliation: University of Bristol
+    orcid: 'https://orcid.org/0009-0006-6279-2543'
+repository-code: 'https://github.com/berkpereira/gridworld-numpy'
+abstract: >-
+  Code used throughout University of Bristol BEng Aerospace
+  Engineering RP3 coursework (2022/2023).
+keywords:
+  - Reinforcement Learning
+  - Mixed Integer Linear Programming
+  - Trajectory Optimisation
+license: Apache-2.0
+commit: 76a4c82177bc8e55d0358a66b1f41c8b8985a442
+date-released: '2023-04-13'
