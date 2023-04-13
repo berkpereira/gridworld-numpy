@@ -8,7 +8,7 @@ message: >-
   metadata from this file.
 type: software
 authors:
-  - given-names: Gabriel Berk
+  - given-names: Gabriel
     family-names: Pereira
     email: gabriel.pereira.2020@bristol.ac.uk
     affiliation: University of Bristol
