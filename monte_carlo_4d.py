@@ -80,7 +80,7 @@ def sample_policy(MDP, policy, state):
     sampled_action = rng.choice(len(MDP.action_space), p=stochastics)
     return sampled_action
 
-def play_episode(MDP, policy, history, policy_name=None, save = False, two_d = False, file_name = None):
+def play_episode(MDP, policy, history, policy_name=None, save = False, two_d = False, file_name = None, width = 'half'):
     
     if not save:
         fig = plt.figure(figsize=(12,9))
@@ -89,16 +89,19 @@ def play_episode(MDP, policy, history, policy_name=None, save = False, two_d = F
         ax.grid()
         marker_size = 3000 / MDP.grid_size
     else: # for saving plots
+        if width == 'half':
+                fig_width = fsp.text_width * fsp.text_width_factor
+        elif width == 'full':
+                fig_width = fsp.text_width
         if not two_d:
-            fig_width = fsp.text_width * fsp.text_width_factor
-            fig = plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, 1.8))
+            fig_height = 2.5
+            fig = plt.figure(figsize=(fig_width, fig_height))
             ax = fig.add_subplot(projection="3d")
             ax.set_aspect('equal')
             ax.grid()
-            marker_size = 1000 / (MDP.grid_size * fig_width * 2)
+            marker_size = 1000 / (MDP.grid_size * 3)
         else:
-            fig_width = fsp.text_width * fsp.text_width_factor
-            fig = plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, 1.8))
+            fig = plt.figure(figsize=(fig_width, 1.8))
             ax = fig.add_subplot()
             ax.set_aspect('equal')
             ax.grid()
@@ -187,7 +190,7 @@ def play_episode(MDP, policy, history, policy_name=None, save = False, two_d = F
                     else:
                         plt.xticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
                         plt.yticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
-                    if MDP.max_altitude <= 12:
+                    if MDP.max_altitude <= 8:
                         ax.set_zticks(np.arange(MDP.max_altitude + 1))
                     else:
                         ax.set_zticks(np.arange(0, MDP.max_altitude + 1, np.ceil(MDP.max_altitude/2)))
@@ -223,7 +226,7 @@ def play_episode(MDP, policy, history, policy_name=None, save = False, two_d = F
                     continue
                 
                 ax.scatter(history[i][2], history[i][3], history[i][0], marker=aircraft_marker,  c='brown', s=marker_size*1.5, alpha=1),
-            ax.view_init(elev=48, azim=-31)
+            ax.view_init(elev=37, azim=-57)
         else: # 2D version of the plot
             for i in range(history.shape[0]):
                 if i == 0:
@@ -273,9 +276,8 @@ def play_episode(MDP, policy, history, policy_name=None, save = False, two_d = F
                     ax.scatter(history[i][2], history[i][3], marker=aircraft_marker,  c='brown', s=marker_size*1.5, alpha=1),
             plt.grid(True)
 
-        #plt.savefig(file_name, bbox_inches=Bbox([[0,0],[fig.get_size_inches()[0], fig.get_size_inches()[1]]]))
-        plt.savefig(file_name)
-        #plt.savefig(f'{fsp.fig_path}/4d_trajectory.pdf')
+        #plt.subplots_adjust(bottom=0, top=1, left=0.1, right=1)  # adjust padding
+        plt.savefig(file_name, bbox_inches = Bbox([[0, -1], [fsp.text_width, fig_height]])) # [[x0, y0], [x1, y1]]
         plt.show()
 
 
