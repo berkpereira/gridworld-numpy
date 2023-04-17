@@ -80,10 +80,10 @@ def wind_evaluate_policies(evaluation_MDP, no_evaluations, eval_wind_params, tra
 def wind_plot_evaluations(evaluations_array_txt_file_name, eval_wind_params, train_wind_params, surface=True, save=False):
     evaluations = np.loadtxt(evaluations_array_txt_file_name, ndmin=2)
     if not surface:
-        plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, 3.1))
+        plt.figure(figsize=(fsp.text_width * fsp.text_width_factor, 2.4))
 
         for j in range(16, 20):
-            plt.plot(train_wind_params, evaluations[:,j],  '-*', label=f'Evaluation w = {eval_wind_params[j]:.2f}')
+            plt.plot(train_wind_params, evaluations[:,j],  '-*', label=f'w = {eval_wind_params[j]:.2f}')
 
         plt.ylim(0, 3)
         plt.grid(True)
