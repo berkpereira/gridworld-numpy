@@ -80,14 +80,17 @@ def sample_policy(MDP, policy, state):
     sampled_action = rng.choice(len(MDP.action_space), p=stochastics)
     return sampled_action
 
-def play_episode(MDP, policy, history, policy_name=None, save = False, two_d = False, file_name = None, width = 'half'):
+def play_episode(MDP, policy, history, policy_name=None, save = False, two_d = False, file_name = None, width = 'half', el_az_array = None, method_str = None):
     
     if not save:
-        fig = plt.figure(figsize=(12,9))
+        plt.rcParams['font.size'] = 13
+        fig = plt.figure(figsize=(20,9.8))
         ax = fig.add_subplot(projection="3d")
         ax.set_aspect('equal')
         ax.grid()
         marker_size = 3000 / MDP.grid_size
+        if el_az_array is not None:
+            ax.view_init(elev=el_az_array[0], azim=el_az_array[1])
     else: # for saving plots
         if width == 'half':
                 fig_width = fsp.text_width * fsp.text_width_factor
@@ -114,29 +117,38 @@ def play_episode(MDP, policy, history, policy_name=None, save = False, two_d = F
     aircraft_marker = path.Path(vertices=marker_vertices)
 
     if not save:
+        title_font_size = 16
+
         def animate(i):
             if i == 0:
                 ax.clear()
                 if policy is None:
-                    ax.set_title(f'Agent simulation from MIP solution.\nLanding zone (x,y): {tuple(MDP.landing_zone)}')
+                    ax.set_title(f'Agent simulation using MILP.\nDirection probability: {round(MDP.direction_probability, 2)}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
                 else:
-                    if policy_name is None:    
-                        ax.set_title(f'Agent simulation under policy: {policy.__name__}\nDirection probability: {MDP.direction_probability}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
+                    if method_str is None:
+                        if policy_name is None:    
+                            ax.set_title(f'Agent simulation under policy.\nDirection probability: {round(MDP.direction_probability, 2)}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
+                        else:
+                            ax.set_title(f'Agent simulation under policy: {policy_name}\nDirection probability: {round(MDP.direction_probability, 2)}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
                     else:
-                        ax.set_title(f'Agent simulation under policy: {policy_name}\nDirection probability: {MDP.direction_probability}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
+                        if policy_name is None:    
+                            ax.set_title(f'Agent simulation under {method_str} policy.\nDirection probability: {round(MDP.direction_probability, 2)}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
+                            plt.title(f'Agent simulation under {method_str} policy.\nDirection probability: {round(MDP.direction_probability, 2)}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}', fontsize=title_font_size)
+                        else:
+                            ax.set_title(f'Agent simulation under {method_str} policy: {policy_name}\nDirection probability: {round(MDP.direction_probability, 2)}\nLanding zone (x,y): {tuple(MDP.landing_zone)}\nTotal return: {history[-1,-1]}')
                 ax.axes.set_xlim3d(left=0, right=MDP.grid_size - 1)
                 ax.axes.set_ylim3d(bottom=0, top=MDP.grid_size - 1)
                 ax.axes.set_zlim3d(bottom=0, top=MDP.max_altitude)
                 ax.set_xlabel('x')
                 ax.set_ylabel('y')
                 ax.set_zlabel('z')
-                if MDP.grid_size <= 20:
+                if MDP.grid_size <= 10:
                     plt.xticks(np.arange(MDP.grid_size))
                     plt.yticks(np.arange(MDP.grid_size))
                 else:
-                    plt.xticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
-                    plt.yticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/10)))
-                if MDP.max_altitude <= 20:
+                    plt.xticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/8)))
+                    plt.yticks(np.arange(0, MDP.grid_size, np.ceil(MDP.grid_size/8)))
+                if MDP.max_altitude <= 15:
                     ax.set_zticks(np.arange(MDP.max_altitude + 1))
                 else:
                     ax.set_zticks(np.arange(0, MDP.max_altitude + 1, np.ceil(MDP.max_altitude/10)))
