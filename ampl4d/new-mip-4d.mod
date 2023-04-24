@@ -24,11 +24,6 @@ var SlackNegLand {POSITION_INDEX} <= 0;
 #var ObstacleRelax {TIME, OBSTACLE_INDEX, VELOCITY_INDEX, POSITION_INDEX} binary;
 var ObstacleRelax {TIME, OBSTACLE_INDEX, VELOCITY_INDEX} binary;
 
-
-
-
-
-
 # cannot relax more than 3 directions. As per Richards2002 paper:
 subj to ObstacleRelaxLimit {k in TIME, i in OBSTACLE_INDEX} : (sum {v in VELOCITY_INDEX} (ObstacleRelax[k,i,v])) <= 3;
 
@@ -60,7 +55,6 @@ subj to NoBackTurnsTwo {t in 1..T, i in 2..3} : Velocity[t-1,i] + Velocity[t,i-2
 # enforce boundaries for all steps in time, for both directions
 # the below constraint with t in TIME was leading to some non-optimal solutions, so I CHANGED IT TO JUST t IN 1..(T-1)
 subj to Boundaries {t in TIME, j in POSITION_INDEX} : 0 <= (sum {i in 0..(t-1)} (Velocity[i,j] - Velocity[i,j+2])) + initial[j] <= grid_size - 1;
-
 
 # Objective: minimise number of turns
 #minimize DirectionChanges : 0.5 * (sum {t in 1..T} ( (sum {i in VELOCITY_INDEX} SlackPosLand[t,i])
